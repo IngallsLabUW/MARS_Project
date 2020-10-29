@@ -1,0 +1,21 @@
+---
+title: "TBD Compound Database"
+author: "RLionheart"
+date: "10/22/2020"
+output: html_document
+---
+
+
+### TBD Compound Project Log
+
+This is an ongoing log: a place for build notes and questions.
+*This is not to be confused with the Design Doc on the Shared Google Drive; that is for overall design direction and team suggestions. It is also not a README, which will be designed closer to project completion.*
+
+Initial TODO: 
+Start with the workflow of the mz/rt/ms2/z/column dataframe --> annotated dataframe, using only the standards on some user data.
+
+#### Issues
+I have output from Will, Josh, and Katherine (and eventually Angie). The output is from a variety of sources (xcms, MSDIAL), and is presented in a variety of formats. 
+
+1. Input needs to be standardized first. Standardization should take place through script/functions, similar to the Targeted Pipeline. Eventually that script/function process will be part of the R package. 
+2. What stages are the various dataframes in? Some look like they have been annotated already with matches of varying confidence.

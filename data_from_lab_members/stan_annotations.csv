@@ -1,0 +1,129 @@
+"compound_name","best_guess","isotope_validated","rt_matchup","mix_matched","closer_rt","area_choice"
+" L-Arginosuccinic acid","FT1281",NA,"FT1281","FT1281","FT1281","FT1281"
+"(3-Carboxypropyl)trimethylammonium","FT0498",NA,NA,"FT0498","FT0498","FT0498"
+"2-Heptyl-3-hydroxy-quinolone","FT1178",NA,"FT1178","FT1178","FT1178","FT1178"
+"2-O-alpha-D-Glucosylglycerol","FT1157",NA,"FT1157","FT1157","FT1157","FT1157"
+"2,3-Pyridinedicarboxylic acid","FT0679",NA,"FT0679","FT0679","FT0679","FT0679"
+"4-Aminobutyric acid","FT0151",NA,"FT0151","FT0151; FT0152","FT0151",NA
+"5-Hydroxyectoine","FT0604",NA,NA,"FT0604","FT0605","FT0604"
+"5-Methylcytosine","FT0306",NA,"FT0306","FT0306","FT0306","FT0306"
+"5-Oxoproline","FT0329",NA,"FT0329","","FT0329",NA
+"Acetylcholine","FT0499",NA,NA,"FT0499","FT0498","FT0498"
+"Adenine","FT0393","FT0393",NA,"FT0393","FT0393","FT0393"
+"Adenine, 15N2","FT0422","FT0422",NA,NA,"FT0422","FT0422"
+"Adenosine","FT1200",NA,NA,"FT1199; FT1200","FT1200","FT1200"
+"Allopurinol","FT0400","Manual","Manual","Manual","Manual","Manual"
+"Anserine","FT1093",NA,"FT1093","FT1093","FT1093","FT1093"
+"Arsenobetaine","FT0755","FT0755","FT0755","FT0755","FT0755","FT0755"
+"Arsenobetaine, 13C2","FT0774","FT0774","FT0774",NA,"FT0774",NA
+"beta-Alanine","FT0087",NA,"FT0087","FT0087; FT0089","FT0087",NA
+"beta-Alaninebetaine","FT0351",NA,NA,"","FT0351","FT0351"
+"beta-Glutamic acid",NA,NA,NA,NA,NA,NA
+"Betonicine","FT0611",NA,NA,"FT0611","FT0613","FT0611"
+"Butyrylcarnitine","FT1049",NA,"FT1049","FT1049","FT1049","FT1049"
+"Carnitine","FT0634",NA,NA,"FT0634","FT0634","FT0634"
+"Carnosine","FT1022",NA,"FT1022","FT1022","FT1022","FT1022"
+"Chitobiose","FT1518",NA,"FT1518","FT1518","FT1518","FT1518"
+"Choline","FT0155",NA,NA,"FT0155","FT0155","FT0155"
+"Citrulline","FT0738",NA,"FT0738","FT0738","FT0738","FT0738"
+"Creatine","FT0348",NA,"FT0348","FT0348","FT0348","FT0348"
+"Cys-Gly, oxidized","FT1414",NA,"FT1414","FT1414","FT1414","FT1414"
+"Cytidine","FT1103",NA,"FT1103","FT1103","FT1103","FT1103"
+"Cytosine","FT0184","FT0184",NA,"FT0184; FT0185","FT0185","FT0184"
+"Cytosine, 13C2, 15N3","FT0219","FT0219","FT0219",NA,"FT0219","FT0219"
+"Deoxyadenosine","FT1141",NA,"FT1141","FT1141","FT1141","FT1141"
+"Dexpanthenol","FT0945",NA,NA,"FT0945","FT0945","FT0945"
+"Dimethylglycine","FT0152",NA,"FT0152","FT0151; FT0152","FT0151",NA
+"Dimethylsulfonioacetate","FT0253",NA,"FT0253","FT0253","FT0253","FT0253"
+"Dimethylsulfoniopropionate","FT0386",NA,"FT0386","FT0386","FT0386","FT0386"
+"DL-Alanine, 2H3","FT0103","FT0103","FT0103",NA,"FT0103","FT0103"
+"DL-Histidine, 15N","FT0587","FT0587","FT0587",NA,"FT0587","FT0587"
+"DL-Proline, 2H7","FT0283","FT0283","FT0283",NA,"FT0283","FT0283"
+"DL-Valine, 2H8","FT0308","FT0308","FT0308",NA,"FT0308","FT0308"
+"Ectoine","FT0465",NA,NA,"FT0463; FT0464; FT0465","FT0465","FT0465"
+"Ergothioneine","FT1037",NA,"FT1037","FT1037","FT1037","FT1037"
+"Ethyl aminobenzoate","FT0668",NA,NA,NA,"FT0668","FT0668"
+"Glucosamine","FT0769",NA,"FT0769","FT0769","FT0769","FT0769"
+"Glutamylphenylalanine",NA,NA,NA,NA,NA,NA
+"Glutathione","FT1329",NA,"FT1329","FT1329","FT1329","FT1329"
+"Glutathione disulfide",NA,NA,NA,NA,NA,NA
+"Glycerophosphocholine","FT1167",NA,"FT1167","FT1167","FT1167","FT1167"
+"Glycine","FT0029","Manual","Manual","Manual","Manual","Manual"
+"Glycine betaine","FT0230","FT0230","FT0230","FT0230; FT0231","FT0231",NA
+"Glycine betaine, 13C5, 15N","FT0295","FT0295","FT0295",NA,"FT0295","FT0295"
+"Gonyol","FT0762",NA,NA,"FT0762","FT0762","FT0762"
+"Guanine","FT0552","FT0552",NA,"FT0552; FT0553","FT0553","FT0552"
+"Guanine, 13C, 15N2","FT0576","FT0576","FT0576",NA,"FT0576","FT0576"
+"Guanosine","FT1247",NA,"FT1247","FT1247","FT1247","FT1247"
+"Homarine","FT0420",NA,"FT0420","FT0420","FT0421",NA
+"Homocysteine thiolactone","FT0224",NA,"FT0224","FT0224","FT0224","FT0224"
+"Hordenine","FT0670",NA,"FT0670","FT0670","FT0670","FT0670"
+"Hydroxyisoleucine","FT0522",NA,NA,"FT0522","FT0522","FT0522"
+"Hydroxyproline","FT0346",NA,NA,"FT0346","FT0346","FT0346"
+"Hypotaurine","FT0178",NA,"FT0178","FT0178","FT0178","FT0178"
+"Hypoxanthine","FT0401","Manual","Manual","Manual","Manual","Manual"
+"Inosine","FT1204",NA,"FT1204","FT1204","FT1204","FT1204"
+"L-Alanine","FT0088","FT0088","FT0088","","FT0087",NA
+"L-Arginine","FT0728",NA,"FT0728","FT0728","FT0728","FT0728"
+"L-Asparagine","FT0357",NA,"FT0357","FT0357","FT0357","FT0357"
+"L-Aspartic acid","FT0374",NA,"FT0374","FT0374","FT0374","FT0374"
+"L-Cystathionine","FT1004",NA,"FT1004","FT1004","FT1004","FT1004"
+"L-Cysteine",NA,NA,NA,NA,NA,NA
+"L-Cysteinesulfinic acid","FT0569",NA,"FT0569","FT0569","FT0569","FT0569"
+"L-Cysteinylglycine","FT0759",NA,"FT0759","FT0759","FT0759","FT0759"
+"L-Cystine",NA,NA,NA,NA,NA,NA
+"L-Glutamic acid","FT0520","Manual","Manual","Manual","Manual","Manual"
+"L-Glutamine","FT0507",NA,"FT0507","FT0507","FT0507","FT0507"
+"L-Histidine","FT0583","FT0583","FT0583","FT0583","FT0583","FT0583"
+"L-Homocysteine","FT0389",NA,"FT0389","FT0389","FT0389","FT0389"
+"L-Homocystine","FT1203",NA,"FT1203","FT1203","FT1203","FT1203"
+"L-Homoserine","FT0246",NA,"FT0246","FT0246","FT0246",NA
+"L-Hydroxylysine","FT0639",NA,"FT0639","FT0639","FT0639","FT0639"
+"L-Isoleucine","FT0349",NA,NA,"FT0349","FT0351","FT0351"
+"L-Isoleucine, 15N","FT0365","FT0365",NA,NA,"FT0365","FT0364"
+"L-Kynurenine",NA,NA,NA,NA,NA,NA
+"L-Leucine","FT0352","Manual","Manual","Manual","Manual","Manual"
+"L-Lysine","FT0510",NA,"FT0510","FT0510","FT0510","FT0510"
+"L-Methionine","FT0537","FT0537","FT0537","FT0537","FT0537","FT0537"
+"L-Methionine S-oxide","FT0664",NA,"FT0664","FT0664","FT0664","FT0664"
+"L-Methionine, 2H3","FT0568","FT0568","FT0568",NA,"FT0568","FT0568"
+"L-Ornithine","FT0363",NA,"FT0363","FT0363","FT0363","FT0363"
+"L-Proline","FT0212","FT0212",NA,"FT0212","FT0212","FT0212"
+"L-Serine","FT0166",NA,"FT0166","FT0166","FT0166","FT0166"
+"L-Threonine","FT0247",NA,"FT0247","FT0246","FT0246",NA
+"L-Tyrosine","FT0792",NA,"FT0792","FT0792","FT0792","FT0792"
+"L-Valine","FT0231","FT0231","FT0231","FT0230; FT0231","FT0231",NA
+"Lactose",NA,NA,NA,NA,NA,NA
+"Melamine","FT0314",NA,"FT0314","FT0314","FT0314","FT0314"
+"Muramic acid","FT1140",NA,NA,"FT1140","FT1140","FT1141"
+"N-Acetyl-D-glucosamine","FT0997",NA,"FT0997","FT0997","FT0997","FT0997"
+"N-Acetyl-L-glutamic acid","FT0840",NA,"FT0840","FT0840","FT0840","FT0840"
+"N-Acetylmuramic acid","FT1292",NA,"FT1292","FT1292","FT1292","FT1292"
+"N-Methyltaurine","FT0442",NA,NA,"FT0442; FT0443","FT0442","FT0442"
+"N6-Acetyl-L-lysine","FT0835","Manual","Manual","Manual","Manual","Manual"
+"N6-Methyladenine","FT0539",NA,NA,"FT0538; FT0539","FT0539","FT0539"
+"N6,N6,N6-Trimethyl-L-lysine","FT0837",NA,"FT0837","FT0837","FT0837","FT0837"
+"Nicotinic acid","FT0287",NA,"FT0287","FT0287","FT0287","FT0287"
+"O-Acetyl-L-serine",NA,NA,NA,NA,NA,NA
+"O-Acetylcarnitine","FT0929",NA,NA,"FT0929","FT0929","FT0929"
+"O-Methylmalonyl-L-carnitine","FT1183",NA,"FT1183","FT1183","FT1183","FT1183"
+"O-Propionylcarnitine","FT0978",NA,"FT0978","FT0978","FT0978","FT0978"
+"Ophthalmic acid","FT1273",NA,"FT1273","FT1273","FT1273","FT1273"
+"Proline betaine","FT0473","Manual","Manual","Manual","Manual","Manual"
+"Pyroglutamic acid from glutamate","FT0330",NA,"FT0330","","FT0330",NA
+"Pyroglutamic acid from glutamine","FT0328",NA,"FT0328","","FT0328",NA
+"Riboflavin-5-phosphate","FT1545",NA,"FT1545","FT1545","FT1545","FT1545"
+"S-Adenosylhomocysteine","FT1463",NA,"FT1463","FT1463","FT1463","FT1463"
+"S-Adenosylmethionine","FT1485",NA,"FT1485","FT1485","FT1485","FT1485"
+"S-Farnesyl-L-cysteine methyl ester",NA,NA,NA,NA,NA,NA
+"Sarcosine","FT0089",NA,"FT0089","FT0087; FT0089","FT0087",NA
+"Succinylglycine","FT0732",NA,"FT0732","FT0732","FT0732","FT0732"
+"Taurine","FT0304",NA,"FT0304","FT0304","FT0304","FT0304"
+"Thiamine diphosphate",NA,NA,NA,NA,NA,NA
+"Thiamine monophosphate","FT1388",NA,"FT1388","FT1388","FT1388","FT1388"
+"Thymine","FT0311",NA,"FT0311","FT0311","FT0311","FT0311"
+"Trigonelline","FT0421",NA,"FT0421","FT0421","FT0421",NA
+"Trimethylamine","FT0004",NA,NA,"","FT0004","FT0004"
+"Trimethylamine N-oxide","FT0034",NA,NA,"FT0034","FT0034","FT0034"
+"Turicine","FT0611",NA,NA,"FT0611","FT0613","FT0611"
+"Urocanic acid","FT0432",NA,NA,"FT0432","FT0433","FT0432"
