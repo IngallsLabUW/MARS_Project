@@ -2,10 +2,10 @@ library(fuzzyjoin)
 library(tidyverse)
 
 
-# Katherine csv: fully curated
+## Katherine csv: fully curated
 MF_ClusterAssignments_Katherine <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") 
 
-# Filter by Confidence Level 1----------------------------------------
+## Filter by Confidence Level 1 ----------------------------------------
 Standards <- read.csv("https://raw.githubusercontent.com/IngallsLabUW/Ingalls_Standards/master/Ingalls_Lab_Standards_NEW.csv",
                                stringsAsFactors = FALSE, header = TRUE) %>%
   select(Column, Compound.Name_old, Emperical.Formula:z, Fraction1, Fraction2) %>%

@@ -1,12 +1,12 @@
 ---
-title: "TBD Compound Database"
+title: "MARS Project Log"
 author: "RLionheart"
 date: "10/22/2020"
 output: html_document
 ---
 
 
-### TBD Compound Project Log
+### MARS Project Log
 
 This is an ongoing log: a place for build notes and questions.
 *This is not to be confused with the Design Doc on the Shared Google Drive; that is for overall design direction and team suggestions. It is also not a README, which will be designed closer to project completion.*
