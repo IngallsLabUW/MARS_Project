@@ -15,7 +15,18 @@ Initial TODO:
 Start with the workflow of the mz/rt/ms2/z/column dataframe --> annotated dataframe, using only the standards on some user data.
 
 #### Issues
-I have output from Will, Josh, and Katherine (and eventually Angie). The output is from a variety of sources (xcms, MSDIAL), and is presented in a variety of formats. 
+I have output from Will, Josh, and Katherine (and eventually Angie). The output is from a variety of sources (xcms, MSDIAL), and is presented in a variety of formats and curation points.
 
 1. Input needs to be standardized first. Standardization should take place through script/functions, similar to the Targeted Pipeline. Eventually that script/function process will be part of the R package. 
 2. What stages are the various dataframes in? Some look like they have been annotated already with matches of varying confidence.
+3. "w/o MS2:" is from MSDIAL output and currently isn't great matching.
+4. Need to replace compound names with new ones! Will work on that later.
+4. Need to translate msp for incorporation, KRH has a json translation but not msp (shouldn't be too hard for R ingestion.) Also stds list, but we don't know the collision energy. 
+
+*Confidence Level 1*
+- What tolerance level works for m.z matching? 
+- Some compounds have the same RT (or extremely similar). Use that as a second metric?
+
+*Similarity Score*
+- Make a function to investigate which columns are only NULL. 
+- The items in "columns.to.drop" need a second look. 
