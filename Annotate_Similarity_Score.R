@@ -35,9 +35,10 @@ Ingalls.Standards <- read.csv("https://raw.githubusercontent.com/IngallsLabUW/In
 # The below function only works on one comparison at a time, there is another function in KRH file
 # for making a dataframe of ms2. Keep digging in there.
 
-## Currently only looking at Uridine
-standard.msp <- read.delim("data_extra/Ingalls_HILICNeg_Standards.msp", header = FALSE, sep = "") %>%
-  slice(10:46) 
+## Currently only looking at Uracil
+Uracil.standard.msp <- read.delim("data_extra/Ingalls_HILICNeg_Standards.msp", header = FALSE, sep = "") %>%
+  slice(56:66) %>%
+  rename(mz = 1, intensity = 2)
 
 #Pull an MS2 spectra from a DDA file according to the a targeted mass and time------
 #Sums intensities and filters out fragments like in Tabb2003
