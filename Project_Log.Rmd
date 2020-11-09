@@ -24,9 +24,16 @@ What is being worked on right now
 #### Specific Questions
 
 - In the original MSMScosine_1 function, the tolerance level for m.z matching is set as 0.02. Is this a good rule of thumb level?
+KRH - It depends on the quality of the spectra that we're comparing to.  If we are comparing to our own spectra, 0.02 is probably good, but it's better to do everything in ppm space.  I say just use that mz tolerance as a default but it should be a variable and we can revisit later to make it into ppm space.
+
 - The MSMScosine_1 function doesn't actually call the mass1 and mass2 inputs (see code section below). Are those just a typo?
+KRH - The way that I implement the cosine function is that I only do the comparision after mass1 and mass2.  See function massbankMS2MatchPOSITIVE for an example.  To calculate the cosine, you don't actually need the parente masses.  There is another similarity metric (MSMScosine_2, its a neutral loss metric), where you need parent masses.  I'd look at MSMScosine_1_df to see how you can feed in a df of mass1, mass2, scan1 (in my format), scan2 and get an output of df$cosine.  I'd start there before going too deep into the 
+
 - Are the scan1 and scan2 variables I am using correct? I am inputting two mini dataframes, one of the MS2 data from the MFCluster_Assignments sheet, and the other from the standards MS2 sheet. Each mini dataframe is two columns, the first "mz" and the second "intensity". I'm getting errors that I can fix but maybe it's from incorrect input.
+KRH - scan1 and scan2 are outputs of the scantable() function in XCMSfuns.R, you give it a string in my format of spectra, and it gives you a df (maybe a matrix, I can't remember).  I think we need to work on getting our MS2 from MSP into the standards list into the same spectra format as in my sheet before its useful to test it. 
+
 - Checking that the standard deviation denominator in Equation 3 the standard deviation of the difference between the experimental and theoretical values?
+KRH - those are supposed to be standard deviation of the experimental and/or theoretical value, essentially a measure of the precision associated with each of those values. They are dependent of but smaller than the mz tolerance and rt tolerance, so a good way to build that in might be to have that denominator = 0.5 x mz_tol or rt_tol.
 
 ---
 
@@ -49,12 +56,11 @@ Each variable of the Total Similarity Equation (TSE) is produced by a separate e
 ```{r}
 library(tidyverse)
 
-MSMScosine_1 <- function(scan1, scan2) { # originally included mass1 and mass2, but they aren't being called.
+MSMScosine_1 <- function(scan1, scan2) {
   # Finds the cosine similarity method for comparing two mass spectra.
   #
   # Args
   #   scan1 & scan2: Tiny dataframes of ms2, first column is mz, second column is intensity.
-  #   mass1 & mass2: MAY NEED TO BE REMOVED, CURRENTLY NOT BEING USED.
   #
   # Returns
   #   similarity: A similarity score between 0 and 1, indicating the similarity of the two vectors.
@@ -74,13 +80,13 @@ MSMScosine_1 <- function(scan1, scan2) { # originally included mass1 and mass2, 
 }
 
 ## Example of cosine similarity using only Uracil
-Uracil.standard.msp <- read.delim("data_extra/Ingalls_HILICNeg_Standards.msp", header = FALSE, sep = "") %>%
+Inosine.standard.msp <- read.delim("data_extra/Ingalls_HILICNeg_Standards.msp", header = FALSE, sep = "") %>%
   slice(56:66) %>%
   rename(mz = 1, intensity = 2) %>%
   mutate(mz = as.numeric(mz),
          intensity = as.numeric(intensity))
 
-Uracil.KRH.msp <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>%
+Uracil.KRH.msp.mine <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>%
   filter(Identification == "Uracil") %>%
   select(MS2) %>%
   separate_rows(MS2, sep = ";") %>%
@@ -88,7 +94,7 @@ Uracil.KRH.msp <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherin
     mutate(mz = as.numeric(mz),
          intensity = as.numeric(intensity))
 
-# Uracil.Similarity.Score <- MSMScosine_1(scan1 = Uracil.standard.msp, scan2 = Uracil.KRH.msp)
+Uracil.Similarity.Score <- MSMScosine_1(scan1 = Uracil.standard.msp, scan2 = Uracil.KRH.msp)
 
 ```
 
@@ -111,14 +117,24 @@ Issues that will need to be fixed eventually
 - Need to replace old compound names with new ones! Will work on that later.
 - Need to reliably translate msp files for incorporation. KRH has a json translation but not msp. 
 - Also we stds list, but we don't know the collision energy. 
-- Make a function to investigate which columns are only NULL. 
+- Make a function to investigate which columns are only NULL.
+
+#### Notes from KRH MS1 Similarity and MSMS cosine similarity talk Nov 6
+
+The delta in equation 3 (MS1 similarity) is the "intuition" from KRH and others about the many runs completed in the lab. In an ideal world, we would inject the Uracil standard thousands of time and then calculate that delta precision from those acquired values. Instead, we use the RT and m/z tolerance values that we currently use in our QC. 
+For now, using those above values is fine, but eventually we should be calculating it from the fuzzyjoin tolerance *clarify this later with KRH*.
+Regarding the MS2 cosine similarity, the dot product equation in the msdial paper (equation 6) is very nearly the same thing as the ms2 cosine similarity function from KRH. Eventually, we should dig into the ideal algorithem for that; there are lots available and we should tailor it to our needs. In particular, including the reverse dot product should be considered For now the total similarity score (ms2 similarity from KRH + MS1 similarity from msdial / 2, see equation 15) is fine. 
+
+Lastly, the msp -> dataframe workflow needs to incorporate some cleaning, including but not limited to no intensities below 1 (throw out all those tiny fragment spectra), intensity needs to be descending and scaled so the biggest value is 100. Check the KRH functions for any others. 
 
 
 #### Other notes
-
+- Remember, you can get the score w/out MS2! The eventual full function should be able to do both.
 - Will can make an MS2 library for stds
 - Naming schemes area all different for unique mass features
 - Potential change for rt times to nano energy
-- 
+- Spectra are relative abundances.
+- For DDA high resolution, the mass spec sees a high signal. When it see that, it takes above and below that signal and isolates it in the collision chamber. In the ms2 df, the first column is the exact mass with an intensity of 100 (maximum), then second mass and intensity, etc. 
+
 
 

@@ -12,10 +12,6 @@ Standards <- read.csv("https://raw.githubusercontent.com/IngallsLabUW/Ingalls_St
   mutate(RT.seconds = RT..min. * 60) %>%
   select(-RT..min.)
 
-Filtered_Standards <- Standards %>%
-  select(Column, Compound.Name_old, Emperical.Formula:z, Fraction1, Fraction2) %>%
-  filter(Compound.Name_old %in% MF_ClusterAssignments_Katherine$Identification) 
-
 Filtered_KRH_ClusterAssignments <- MF_ClusterAssignments_Katherine %>%
   select(!contains("cluster")) %>%
   filter(Confidence == 1)
@@ -38,9 +34,27 @@ Knowns_mz <- Standards %>%
   select(Compound.Name_old, m.z, RT.seconds, Column, z) %>%
   rename(Standards.Compound.Name = Compound.Name_old)
 
-MyFuzzyJoin_mz <- Unknowns_mz %>%
+MyFuzzyJoin <- Unknowns_mz %>%
   difference_inner_join(Knowns_mz, by = c("m.z"), max_dist = 0.05) %>%
-  rename(Standards.m.z = m.z.y,
-         Standards.Column = Column.y,
-         Standards.z = z.y)
+  rename(m.z.Unknowns = m.z.x,
+         Column.Unknowns = Column.x, # can switch these out for variables eventually
+         z.Unknowns = z.x,
+         RT.seconds.Unknowns = rt,
+         m.z.Standards = m.z.y,
+         Column.Standards = Column.y,
+         z.Standards = z.y,
+         RT.seconds.Standards = RT.seconds) %>%
+  select(Unknown.Compound, KRH.Identification, Standards.Compound.Name,
+         m.z.Unknowns, m.z.Standards, RT.seconds.Unknowns, RT.seconds.Standards,
+         Column.Unknowns, Column.Standards, z.Unknowns, z.Standards) %>%
+  filter(z.Unknowns == z.Standards,
+         Column.Unknowns == Column.Standards)
+###
 
+RT_Testing <- MyFuzzyJoin %>%
+  select(Unknown.Compound:Standards.Compound.Name, RT.seconds.Unknowns, RT.seconds.Standards) %>%
+  group_by(Unknown.Compound) %>%
+  add_tally() %>%
+  mutate(testing = ifelse((RT.seconds.Unknowns > (RT.seconds.Standards + 0.2) | 
+                             RT.seconds.Unknowns < (RT.seconds.Standards - 0.2)), 
+                          FALSE, TRUE)) 
