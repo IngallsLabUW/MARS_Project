@@ -4,11 +4,26 @@ options(digits = 6)
 
 MF_ClusterAssignments_Katherine <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") 
 
+# If we are comparing to our own spectra, 0.02 is probably good, but it's better to do everything in ppm space. 
+# I say just use that mz tolerance as a default but it should be a variable and we can revisit later to make it into ppm space.
 
-# "Scan" is ms2, a tiny dataframe of ms2 where the first column is mass and the second is intensity.
-# The below function only works on one comparison at a time, there is another function in KRH file
-# for making a dataframe of ms2. Keep digging in there.
 
+# Relevant Functions ------------------------------------------------------
+
+# Get a scan table from a concatenated scanlist---- (Scan is output from getms2spectra function)
+scantable <- function(Scan) {
+  Try <- read.table(text=as.character(Scan),
+                    col.names=c('mz','intensity')) %>% 
+    mutate(mz = as.numeric(mz %>% str_replace(",", "")),
+           intensity = as.numeric(intensity %>% str_replace(";", ""))) %>%
+    mutate(intensity = round(intensity/max(intensity)*100, digits = 1))%>%
+    filter(intensity > 0.5) %>%
+    arrange(desc(intensity)) 
+    
+  return(Try)
+}    
+
+# Finds the cosine similarity method for comparing two mass spectra.
 MSMScosine_1 <- function(scan1, scan2) {
   # Finds the cosine similarity method for comparing two mass spectra.
   #
@@ -32,17 +47,28 @@ MSMScosine_1 <- function(scan1, scan2) {
   return(similarity)
 }
 
-#Get a scan table from a concatenated scanlist---- (Scan is output from getms2spectra function)
-scantable <- function(Scan) {
-  Try <- read.table(text=as.character(Scan),
-                    col.names=c('mz','intensity')) %>% 
-    mutate(mz = as.numeric(mz %>% str_replace(",", "")),
-           intensity = as.numeric(intensity %>% str_replace(";", "")))
-  return(Try)
-}     
+# I'd look at MSMScosine_1_df to see how you can feed in a df of mass1, mass2, scan1 (in my format), scan2 and get an output of df$cosine.
+MSMSconsine1_df <- function(df) {
+  scan1 <- scantable(df["scan1"])
+  scan2 <- scantable(df["scan2"])
+  mass1 <- df["mass1"]
+  mass2 <- df["mass2"]
+  
+  mztolerance<-0.02
+  
+  w1<-(scan1[,1]^2)*sqrt(scan1[,2])
+  w2<-(scan2[,1]^2)*sqrt(scan2[,2])
+  
+  diffmatrix<-sapply(scan1[,1], function(x) scan2[,1]-x)
+  sameindex<-which(abs(diffmatrix)<mztolerance,arr.ind=T)
+  
+  similarity<-sum(w1[sameindex[,2]]*w2[sameindex[,1]])/(sqrt(sum(w2^2))*sqrt(sum(w1^2)))
+  
+  return(similarity)
+}
 
 
-## Example of MS2 cosine similarity using only Uracil
+# Uracil Example ---------------------------------------------------
 Uracil.standard.msp <- read.delim("data_extra/Ingalls_HILICNeg_Standards.msp", header = FALSE, sep = "") %>%
   slice(56:66) %>%
   rename(mz = 1, intensity = 2) %>%
@@ -60,7 +86,7 @@ test.uracil.msp.standards <- Uracil.standard.msp %>%
 
 uracil.MS2cosine.sim <- MSMScosine_1(scan1 = Uracil.KRH.msp, scan2 = Uracil.standard.msp)
 
-# MS1 Similarity ----------------------------------------------------------
+# MS1 Similarity
 uracil.krh <- MF_ClusterAssignments_Katherine %>%
   filter(Identification == "Uracil") %>%
   select(Identification, mz, rt)
@@ -78,14 +104,75 @@ theor.value.mz = uracil.standard$m.z
 exp.value.rt = uracil.krh$rt
 theor.value.rt = uracil.standard$RT.seconds
 
-MS1.mz.similarity <- (-0.5 * (((exp.value.mz - theor.value.mz) / 0.02) ^ 2))
-MS1.rt.similarity <- (-0.5 * (((exp.value.rt - theor.value.rt) / 0.02) ^ 2))
+MS1.mz.similarity <- exp(-0.5 * (((exp.value.mz - theor.value.mz) / 0.02) ^ 2))
+MS1.rt.similarity <- exp(-0.5 * (((exp.value.rt - theor.value.rt) / 0.4) ^ 2))
 
-# Total Similarity Score --------------------------------------------------
-
+# Total Similarity Score
 # TS = ((MS2 Similarity + MS1 Similarity) / 2) * 100
-Total.Similarity <- ((uracil.cosine.sim + MS1.mz.similarity + MS1.rt.similarity) / 3) * 100
+Uracil.Total.Similarity <- ((uracil.MS2cosine.sim + MS1.mz.similarity + MS1.rt.similarity) / 3) * 100
 
+# Citrulline Example --------------------------------------------------------
+Citrulline.standard.msp <- read.csv("data_extra/HILICPosMS2.csv") %>%
+  filter(str_detect(Compound.Name, "Citrulline")) %>%
+  select(MS2)
+Citrulline.standard.msp <- scantable(Citrulline.standard.msp)
+
+citrulline.filtered.krh <- MF_ClusterAssignments_Katherine %>%
+  filter(Identification == "Citrulline") %>%
+  select(MS2)
+Citrulline.KRH.msp <- scantable(citrulline.filtered.krh)
+
+citrulline.MS2cosine.sim <- MSMScosine_1(scan1 = Citrulline.KRH.msp, scan2 = Citrulline.standard.msp)
+
+# MS1 Similarity
+citrulline.krh <- MF_ClusterAssignments_Katherine %>%
+  filter(Identification == "Citrulline") %>%
+  select(Identification, mz, rt)
+
+citrulline.standard <- read.csv("https://raw.githubusercontent.com/IngallsLabUW/Ingalls_Standards/master/Ingalls_Lab_Standards_NEW.csv",
+                            stringsAsFactors = FALSE, header = TRUE) %>%
+  mutate(RT.seconds = RT..min. * 60) %>%
+  select(-RT..min.) %>%
+  filter(Compound.Name == "Citrulline") %>%
+  select(Compound.Name, m.z, RT.seconds)
+
+exp.value.mz = citrulline.krh$mz
+theor.value.mz = citrulline.standard$m.z
+
+exp.value.rt = citrulline.krh$rt
+theor.value.rt = citrulline.standard$RT.seconds
+
+MS1.mz.similarity <- exp(-0.5 * (((exp.value.mz - theor.value.mz) / 0.02) ^ 2))
+MS1.rt.similarity <- exp(-0.5 * (((exp.value.rt - theor.value.rt) / 0.4) ^ 2))
+
+# Total Similarity Score
+# TS = ((MS2 Similarity + MS1 Similarity) / 2) * 100
+Citrulline.Total.Similarity <- ((uracil.MS2cosine.sim + MS1.mz.similarity + MS1.rt.similarity) / 3) * 100
+
+
+# functions ---------------------------------------------------------------
+
+
+# To calculate the cosine, you don't actually need the parente masses.
+# There is another similarity metric (MSMScosine_2, its a neutral loss metric), where you need parent masses.
+MSMScosine_2<-function(scan1,scan2,mass1,mass2){
+  
+  mztolerance<-0.02
+  
+  loss1<-scan1
+  loss1[,1]<-mass1-loss1[,1]
+  loss2<-scan2
+  loss2[,1]<-mass2-loss2[,1]
+  w1<-(loss1[,1]^2)*sqrt(loss1[,2])
+  w2<-(loss2[,1]^2)*sqrt(loss2[,2])
+  
+  diffmatrix<-sapply(loss1[,1], function(x) loss2[,1]-x)
+  sameindex<-which(abs(diffmatrix)<mztolerance,arr.ind=T)
+  
+  similarity2<-sum(w1[sameindex[,2]]*w2[sameindex[,1]])/(sqrt(sum(w2^2))*sqrt(sum(w1^2)))
+  
+  return(similarity2)
+}
 
 #Pull an MS2 spectra from a DDA file according to the a targeted mass and time------
 #Sums intensities and filters out fragments like in Tabb2003
@@ -128,43 +215,6 @@ getms2spectra <-
   }
 #Close Funtion
 
-
-
-MSMScosine_1 <- function(scan1, scan2, mass1, mass2) {
-  
-  mztolerance <- 0.02
-  
-  w1 <- (scan1[, 1] ^ 2) * sqrt(scan1[, 2])
-  w2 <- (scan2[, 1] ^ 2) * sqrt(scan2[, 2])
-  
-  diffmatrix <- sapply(scan1[, 1], function(x) scan2[, 1] - x)
-  sameindex <- which(abs(diffmatrix) < mztolerance, arr.ind = T)
-  
-  similarity <- sum(w1[sameindex[, 2]] * w2[sameindex[, 1]]) / (sqrt(sum(w2^2)) * sqrt(sum(w1^2)))
-  
-  return(similarity)
-}
-
-MSMSconsine1_df <- function(df){
-  scan1 <- scantable(df["scan1"])
-  scan2 <- scantable(df["scan2"])
-  mass1 <- df["mass1"]
-  mass2 <- df["mass2"]
-  
-  mztolerance<-0.02
-  
-  w1<-(scan1[,1]^2)*sqrt(scan1[,2])
-  w2<-(scan2[,1]^2)*sqrt(scan2[,2])
-  
-  diffmatrix<-sapply(scan1[,1], function(x) scan2[,1]-x)
-  sameindex<-which(abs(diffmatrix)<mztolerance,arr.ind=T)
-  
-  similarity<-sum(w1[sameindex[,2]]*w2[sameindex[,1]])/(sqrt(sum(w2^2))*sqrt(sum(w1^2)))
-  
-  return(similarity)
-}
-
-
 #Check known compounds
 checkKnownCompounds <- function(MFs, ppmtol, rttolRP, rttolHILIC) {
   if(missing(ppmtol)) {
@@ -205,27 +255,32 @@ checkKnownCompounds <- function(MFs, ppmtol, rttolRP, rttolHILIC) {
 
 #Check against MassBank Spectrum (m/z and spectra match for putative ID)
 #Need to have the Spectra in your working set, which is parsed from MONA, KRH has copy, but can't upload -- too big
-massbankMS2MatchPOSITIVE <- function(ShortestDat){
+#The way that I implement the cosine function is that I only do the comparision after mass1 and mass2. 
+# See function massbankMS2MatchPOSITIVE for an example.  
+massbankMS2MatchPOSITIVE <- function(ShortestDat) { # ShortestDat is the unknowns, the items that are being annotated. 
+  # can be taken from MF cluster assignments, MFfrac is the compound ID
   mz <- as.numeric(ShortestDat["mz"])
   MS2 <- as.character(ShortestDat["MS2"])
   MF_Frac <- as.character(ShortestDat["MF_Frac"])
   
-  Candidates <- Spectra %>%
+  Candidates <- Spectra %>% ## possible matches in mz space.
+    # only do ms2 matches on possible ms1 matches. ok on standards becuase its short, but need a filter for larger dbs. 
     mutate(MH_mass = M_mass + 1.0072766) %>%
     filter(near(MH_mass, mz, tol= 0.02)) %>%
     mutate(scan1 = spectrum_KRHform_filtered, 
-           scan2 = MS2, mass1 = MH_mass, mass2 = mz)%>%
+           scan2 = MS2, mass1 = MH_mass, mass2 = mz)%>% # Sets up dataframe to do comparison
     filter(!is.na(scan1))
   
-  NoMatchReturn <- Spectra %>% 
+  NoMatchReturn <- Spectra %>% # What happens if there are no matches. NAs go back to original dataset
     mutate(MassBankMatch = NA,
            MassBankppm = NA,
            MassBankCosine1 = NA,
            MF_Frac = MF_Frac) %>%
     select(MF_Frac, MassBankMatch:MassBankCosine1) %>% head(1)
   
-  if (length(Candidates$ID > 1)){
-    Candidates$Cosine1 <- apply(Candidates, 1, FUN=function(x) MSMSconsine1_df(x))
+  # some filters below may be thrown out
+  if (length(Candidates$ID > 1)){ # if there is a match, 
+    Candidates$Cosine1 <- apply(Candidates, 1, FUN=function(x) MSMSconsine1_df(x)) # applies cosine function
     Candidates$Cosine2 <- apply(Candidates, 1, FUN=function(x) MSMSconsine2_df(x))
     Candidates <- Candidates %>% filter(Cosine1 > 0.8) %>% arrange(desc(Cosine1)) %>% 
       mutate(MF_Frac = MF_Frac) %>% head(1)
