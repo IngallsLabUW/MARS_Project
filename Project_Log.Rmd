@@ -16,12 +16,16 @@ This is an ongoing log: a place for build notes and questions.
 #### TODO: 
 What is being worked on right now
 
-- Tidy up the workflow of the mz/rt/ms2/z/column dataframe to a Confidence Level 1 annotated dataframe.
-- Set up flexible equation for Total.Similarity score.
+- Match experimental unknowns with MoNA dataframes. 
 - Transform MS2 from MSP --> standards list in the KRH spectral format.
-  + This step will requirecleaning, including but not limited to no intensities below 1 (throw out all those tiny fragment spectra), scale intensity so the biggest value is 100, and then order by descending intensity. intensity needs to be descending and scaled so the biggest value is 100.
+  + This step will require cleaning, including but not limited to no intensities below 1 (throw out all those tiny fragment spectra), scale intensity so the biggest value is 100, and then order by descending intensity. intensity needs to be descending and scaled so the biggest value is 100.
 
 New standards MS2: It's actually 12 total injections for pos and 12 for neg since we have two different standard mixes. 
+
+--- 
+#### Specific Questions
+
+- 
 
 ---
 
@@ -33,26 +37,24 @@ New standards MS2: It's actually 12 total injections for pos and 12 for neg sinc
 
 - For the overall spectral similarity score, a combination of several equations from KRH and Tsugawa et. al form a total similarity equation for scoring.
 
-![Tusgawa et al, 2015.](figures/TotalSimilarityScore.png)
+*Confidence Level 2*
 
-The equation is flexible depending on which variables are available. Below are alternative equations. If retention time is not available for compound identification, the total score is calculated using **Equation 13**. If the formula information is not available, the use **Equation 14**. If neither retention time nor formular information are available, use **Equation 15**.
-
-Regarding the MS2 cosine similarity, the dot product equation in the msdial paper (equation 6) is very nearly the same thing as the ms2 cosine similarity function from KRH. Eventually, we should dig into the ideal algorithem for that; there are lots available and we should tailor it to our needs. In particular, including the reverse dot product should be considered For now the total similarity score (ms2 similarity from KRH + MS1 similarity from msdial / 2, see equation 15) is fine. 
-
-![Tusgawa et al, 2015.](figures/All_Equations.png)
-
-Each variable of the Total Similarity Equation (TSE) is produced by a separate equation. Starting at the beginning with the MS/MS similarity, an equation in R is used from KRH to produce cosine similarity.
-
-Next, the MS1 similarity (and retention time similarity) is obtained by using the below equation. The experimental value is the m/z acquired from the experimental results, while the theoretical value is the m/z from the established literature (in our case, the standards list). The delta in equation 3 (MS1 similarity for m.z and rt) is the "intuition" from KRH and others about the many runs completed in the lab. In an ideal world, we would inject the Uracil standard thousands of time and then calculate that delta precision from those acquired values. Instead, we use the RT and m/z tolerance values that we currently use in our QC. For now, using those above values is fine, but eventually we should be calculating it from the fuzzyjoin tolerance *clarify this later with KRH*.
-
-![RT and MS1 Similarity.](figures/Mass_RT_Similarity.png)
+- Match unknown experimental values to MoNA and Metlin dataframes (which will be updated either every quarter, or as often as necessary). 
 
 ---
+
+#### Specific Questions
+
+- The massbankMS2MatchNEGATIVE (and I assume POSITIVE) function doesn't like when the experimental data comes without an MS2 column. For now I am just filtering those rows out, but would it be preferable to hang on to that data?
+- Currently we are filtering out matches that have a cosine similarity < 0.8. Ok to totally throw those out or better to keep them as a lower-confidence match? Ditto on the MassBankppm < 5 filter. I can also change both of these to variables.
+- There is a step in the Candidates df production that combines the "MF_Frac" column with the narrowed-down candidates from MoNA. In the original code this inserts a character vector of the whole original MF_Frac column into the dataframe cell. Better to match back to the relevant MF_Frac identification?
 
 
 #### Ongoing issues
 Issues that will need to be fixed eventually
 
+- Tidy up the workflow of the mz/rt/ms2/z/column dataframe to a Confidence Level 1 annotated dataframe.
+- Set up flexible equation for Total.Similarity score.
 - The dataframes to be annotated are from a variety of sources (xcms, MSDIAL), and are presented in a variety of formats and curation levels.
 - Input will need to be standardized, through the annotation functions. Eventually that script/function process will be part of the R package. 
 - "w/o MS2:" on identified compounds is from MSDIAL output and currently isn't matching that we should rely on.
@@ -60,12 +62,14 @@ Issues that will need to be fixed eventually
 - Need to reliably translate msp files for incorporation. KRH has a json translation but not msp. 
 - Also we stds list, but we don't know the collision energy. 
 - Make a function to investigate which columns are only NULL.
+- For now, using given tolerance values is fine, but eventually we should be calculating it from the fuzzyjoin tolerance *clarify this later with KRH*.
+- For now, we can compare to our own spectra and use 0.02 as tolerance. Revisit later to make it into ppm space.
 
 
 #### Other notes
 - Remember, you can get the score w/out MS2! The eventual full function should be able to do both.
 - Will can make an MS2 library for stds
-- Naming schemes area all different for unique mass features
+- Naming schemes are all different for unique mass features
 - Potential change for rt times to nano energy
 - Spectra are relative abundances.
 - For DDA high resolution, the mass spec sees a high signal. When it see that, it takes above and below that signal and isolates it in the collision chamber. In the ms2 df, the first column is the exact mass with an intensity of 100 (maximum), then second mass and intensity, etc. 
