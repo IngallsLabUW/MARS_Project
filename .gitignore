@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
+
+data_extra/NEG_*.csv
