@@ -22,12 +22,19 @@ What is being worked on right now
 
 New standards MS2: It's actually 12 total injections for pos and 12 for neg since we have two different standard mixes. 
 
---- 
+---
+
 #### Specific Questions
 
-- 
+Here’s how I normally implemented the massbankMS2MatchPOSITIVE function I gave you earlier:
 
----
+PositiveMBMatches <- adply(PosDat, 1, .fun=function(x) massbankMS2MatchPOSITIVE(x), .parallel = TRUE) %>%
+  filter(!is.na(MassBankMatch))
+Where PosDat is a dataframe with mz and MS2 (in KRH form)
+
+Make sure whatever you try can be run easily with parallel processing, I think that was why I went with it.
+
+--- 
 
 *Confidence Level 1*
 
@@ -41,13 +48,6 @@ New standards MS2: It's actually 12 total injections for pos and 12 for neg sinc
 
 - Match unknown experimental values to MoNA and Metlin dataframes (which will be updated either every quarter, or as often as necessary). 
 
----
-
-#### Specific Questions
-
-- The massbankMS2MatchNEGATIVE (and I assume POSITIVE) function doesn't like when the experimental data comes without an MS2 column. For now I am just filtering those rows out, but would it be preferable to hang on to that data?
-- Currently we are filtering out matches that have a cosine similarity < 0.8. Ok to totally throw those out or better to keep them as a lower-confidence match? Ditto on the MassBankppm < 5 filter. I can also change both of these to variables.
-- There is a step in the Candidates df production that combines the "MF_Frac" column with the narrowed-down candidates from MoNA. In the original code this inserts a character vector of the whole original MF_Frac column into the dataframe cell. Better to match back to the relevant MF_Frac identification?
 
 
 #### Ongoing issues

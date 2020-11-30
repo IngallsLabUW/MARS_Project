@@ -1,14 +1,33 @@
 library(fuzzyjoin)
 library(tidyverse)
 source("Functions.R")
-source("MyKRHFunctions.R")
+source("KRH_Functions.R")
 
+
+# Specific Questions ------------------------------------------------------
+
+# - The massbankMS2MatchNEGATIVE function doesn't like when the experimental data comes with a NA in the MS2 column. 
+#   For now I am just filtering those rows out (line 67), but would it be preferable to hang on to that data somewhere?
+## I think that's fine for now - for a 'level 2' confidence match you definately need an MS2, so for those mass featuers without MS2s, we can't get any 'level 2' confidence match.
+
+# - Currently we are filtering out any matches that have a cosine similarity < 0.8 (line 74). 
+#   Is it ok to totally throw those out or better to keep them as a lower-confidence match? 
+## I think it'd be better to have the cosine similarity score cut off as an input and probably lower it to maybe 0.5 since we will then incorporate it into a 'total score'
+
+#   Ditto on the MassBankppm < 5 filter (line 83).
+# - There is a step in the Candidates df production that combines the experimental "MF_Frac" column 
+#   with the narrowed-down candidates from MoNA (lines 36 and 76). In the original code this inserts a character vector 
+#   of the whole MF_Frac column into the dataframe cell. Better to match back to the relevant MF_Frac identification?
+## I think it'd be better to have the pmme cut off as an input and then incorporate it into a 'total score'
+
+
+# TODO
 # Need to filter out the standards from this "check". No point in assigning things we already have!
 
 # Imports -----------------------------------------------------------------
-Spectra <- read.csv("data_extra/NEG_Spectra.csv") # One of four relational spreadsheets
+Spectra <- read.csv("NEG_Spectra.csv") # One of four relational spreadsheets
 
-ShortestDat <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>% 
+ShortestDat <- read.csv("MFCluster_Assignments_Katherine.csv") %>% 
   ## ShortestDat is the unknowns, aka experimental values
   rename(MF_Frac = MassFeature_Column) %>%
   select(MF_Frac, mz, MS2) %>%
@@ -19,8 +38,9 @@ ShortestDat <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.c
 
 mz <- as.numeric(unlist(ShortestDat["mz"])) # Had to add the unlist() here, otherwise threw a conversion error
 MS2 <- as.character(ShortestDat["MS2"]) 
-MF_Frac <- as.data.frame(ShortestDat["MF_Frac"]) # Changed from character vector to dataframe for making the NoMatchReturn later.
-MF_Frac <- as.character(ShortestDat["MF_Frac"])
+#MF_Frac <- as.data.frame(ShortestDat["MF_Frac"]) # Changed from character vector to dataframe for making the NoMatchReturn later.
+# Works for line 62 but not 77.
+MF_Frac <- as.character(ShortestDat["MF_Frac"]) # original. Works for line 77 but not for line 62.
 Spectra.MH.Mass <- Spectra %>%
   mutate(MH_mass = M_mass - 1.0072766) 
 
@@ -30,7 +50,11 @@ ShortestDatForJoin <- ShortestDat %>%
 
 
 # Create candidate dataframe ----------------------------------------------
-  
+testmass <- 116.07093 #Mass from the ShortestDat
+Test <- Spectra.MH.Mass %>% filter(MH_mass > testmass-.020) %>% 
+  filter(MH_mass < testmass+.020)  # All of these spectra should be in your 'candidates', not sure why they are not in the following lines
+
+
 Candidates <- data.frame(near(Spectra.MH.Mass$MH_mass, ShortestDat$mz, tol = 0.02)) %>% # Create T/F matching dataframe
   # Join with Spectra df
   cbind(Spectra.MH.Mass) %>% 
@@ -60,35 +84,15 @@ if (length(Candidates$ID > 1)) {
   Candidates2 <- Candidates %>%
     filter(Cosine1 > 0.8) %>% 
     arrange(desc(Cosine1)) %>% 
-  mutate(MF_Frac = MF_Frac)
+    mutate(MF_Frac = MF_Frac)
   
   Candidates3 <- Candidates2 %>% 
     mutate(MassBankMatch = paste(Names, ID, sep= " ID:"), 
            MassBankppm = abs(mass1-mass2)/mass2 *10^6,
            MassBankCosine1 = Cosine1) %>%
-   # filter(MassBankppm < 5) %>% # what is this step? 
+    #filter(MassBankppm < 5) %>% # In this data, this step removes everything.
     select(MF_Frac, MassBankMatch:MassBankCosine1)
 }
 if (length(Candidates$MF_Frac) == 0) {
   Candidates <- NoMatchReturn
 }
-
-
-#####################################################
-# ORIGINAL CANDIDATES + NOMATCHRETURN FRAME
-
-#filter(near(MH_mass, mz, tol = 0.02)) %>%
-# mutate(scan1 = spectrum_KRHform_filtered,
-#        scan2 = MS2,
-#        mass1 = MH_mass, # from Spectra
-#        mass2 = mz) %>%
-# filter(!is.na(scan1))
-
-# NoMatchReturn <- Spectra %>%
-#   mutate(MassBankMatch = NA,
-#          MassBankppm = NA,
-#          MassBankCosine1 = NA,
-#          MF_Frac = MF_Frac) %>% # Doesn't work as character or as df right now
-#   select(MF_Frac, MassBankMatch:MassBankCosine1) %>% head(1)
-#####################################################
-
