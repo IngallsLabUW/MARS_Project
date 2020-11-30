@@ -20,14 +20,21 @@ source("KRH_Functions.R")
 #   of the whole MF_Frac column into the dataframe cell. Better to match back to the relevant MF_Frac identification?
 ## I think it'd be better to have the pmme cut off as an input and then incorporate it into a 'total score'
 
+# Here’s how I normally implemented the massbankMS2MatchPOSITIVE function I gave you earlier:
+#   
+#   PositiveMBMatches <- adply(PosDat, 1, .fun=function(x) massbankMS2MatchPOSITIVE(x), .parallel = TRUE) %>%
+#     filter(!is.na(MassBankMatch))
+#   Where PosDat is a dataframe with mz and MS2 (in KRH form)
+#   
+# Make sure whatever you try can be run easily with parallel processing, I think that was why I went with it.
 
 # TODO
 # Need to filter out the standards from this "check". No point in assigning things we already have!
 
 # Imports -----------------------------------------------------------------
-Spectra <- read.csv("NEG_Spectra.csv") # One of four relational spreadsheets
+Spectra <- read.csv("data_extra/NEG_Spectra.csv") # One of four relational spreadsheets from KRH download
 
-ShortestDat <- read.csv("MFCluster_Assignments_Katherine.csv") %>% 
+ShortestDat <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>% 
   ## ShortestDat is the unknowns, aka experimental values
   rename(MF_Frac = MassFeature_Column) %>%
   select(MF_Frac, mz, MS2) %>%
@@ -38,9 +45,9 @@ ShortestDat <- read.csv("MFCluster_Assignments_Katherine.csv") %>%
 
 mz <- as.numeric(unlist(ShortestDat["mz"])) # Had to add the unlist() here, otherwise threw a conversion error
 MS2 <- as.character(ShortestDat["MS2"]) 
-#MF_Frac <- as.data.frame(ShortestDat["MF_Frac"]) # Changed from character vector to dataframe for making the NoMatchReturn later.
+MF_Frac <- as.data.frame(ShortestDat["MF_Frac"]) # Changed from character vector to dataframe for making the NoMatchReturn later.
 # Works for line 62 but not 77.
-MF_Frac <- as.character(ShortestDat["MF_Frac"]) # original. Works for line 77 but not for line 62.
+# MF_Frac <- as.character(ShortestDat["MF_Frac"]) # original. Works for line 77 but not for line 62.
 Spectra.MH.Mass <- Spectra %>%
   mutate(MH_mass = M_mass - 1.0072766) 
 
@@ -48,24 +55,25 @@ ShortestDatForJoin <- ShortestDat %>%
   rename(MH_mass = mz) %>%
   select(MH_mass, MS2)
 
-
-# Create candidate dataframe ----------------------------------------------
+# Create candidate dataframe ------------------------------------------------------
 testmass <- 116.07093 #Mass from the ShortestDat
-Test <- Spectra.MH.Mass %>% filter(MH_mass > testmass-.020) %>% 
-  filter(MH_mass < testmass+.020)  # All of these spectra should be in your 'candidates', not sure why they are not in the following lines
 
-
-Candidates <- data.frame(near(Spectra.MH.Mass$MH_mass, ShortestDat$mz, tol = 0.02)) %>% # Create T/F matching dataframe
-  # Join with Spectra df
-  cbind(Spectra.MH.Mass) %>% 
-  # Rename and filter for only those compounds that matched
-  rename(mz.match = 1) %>%
-  filter(mz.match == TRUE) %>% 
+# All of these spectra should be in your 'candidates'
+Candidates <- Spectra.MH.Mass %>% 
+  filter(MH_mass > testmass - .020) %>% 
+  filter(MH_mass < testmass + .020) %>% 
+  ##############
+  # data.frame(near(Spectra.MH.Mass$MH_mass, ShortestDat$mz, tol = 0.02)) %>%
+  # cbind(Spectra.MH.Mass) %>% # This doesn't work for now
+  # rename(mz.match = 1) %>%
+  # filter(mz.match == TRUE) %>% 
+  ##############
   # Join with ShortestDat to see which experimental mzs found near matches in the MoNA Spectra df.
   # Like the doing the near() filter in reverse.
   difference_inner_join(ShortestDatForJoin, by = "MH_mass", max_dist = 0.02) %>% 
-  mutate(scan1 = spectrum_KRHform_filtered,
-         scan2 = MS2, # from 
+  left_join(ShortestDat) %>%
+  mutate(scan1 = spectrum_KRHform_filtered, # from Spectra
+         scan2 = MS2, # from exprimental data (MF_Fraction in this script)
          mass1 = MH_mass.x, # this should be from Spectra
          mass2 = MH_mass.y) # this should be from experimental data
 
@@ -73,9 +81,6 @@ NoMatchReturn <- MF_Frac %>%
   mutate(MassBankMatch = NA,
          MassBankppm = NA,
          MassBankCosine1 = NA)
-
-# Currently filtering out NAs until this is cleaned up
-Candidates <- Candidates[c(1:5, 7), ]
   
 if (length(Candidates$ID > 1)) { 
   Candidates$Cosine1 <- apply(Candidates, 1, FUN=function(x) MSMScosine1_df(x)) 
@@ -83,8 +88,8 @@ if (length(Candidates$ID > 1)) {
   
   Candidates2 <- Candidates %>%
     filter(Cosine1 > 0.8) %>% 
-    arrange(desc(Cosine1)) %>% 
-    mutate(MF_Frac = MF_Frac)
+    arrange(desc(Cosine1)) 
+    #mutate(MF_Frac = MF_Frac) # original
   
   Candidates3 <- Candidates2 %>% 
     mutate(MassBankMatch = paste(Names, ID, sep= " ID:"), 

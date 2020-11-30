@@ -26,13 +26,6 @@ New standards MS2: It's actually 12 total injections for pos and 12 for neg sinc
 
 #### Specific Questions
 
-Here’s how I normally implemented the massbankMS2MatchPOSITIVE function I gave you earlier:
-
-PositiveMBMatches <- adply(PosDat, 1, .fun=function(x) massbankMS2MatchPOSITIVE(x), .parallel = TRUE) %>%
-  filter(!is.na(MassBankMatch))
-Where PosDat is a dataframe with mz and MS2 (in KRH form)
-
-Make sure whatever you try can be run easily with parallel processing, I think that was why I went with it.
 
 --- 
 
