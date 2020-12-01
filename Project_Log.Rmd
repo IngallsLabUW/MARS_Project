@@ -17,17 +17,8 @@ This is an ongoing log: a place for build notes and questions.
 What is being worked on right now
 
 - Match experimental unknowns with MoNA dataframes. 
-- Transform MS2 from MSP --> standards list in the KRH spectral format.
-  + This step will require cleaning, including but not limited to no intensities below 1 (throw out all those tiny fragment spectra), scale intensity so the biggest value is 100, and then order by descending intensity. intensity needs to be descending and scaled so the biggest value is 100.
 
 New standards MS2: It's actually 12 total injections for pos and 12 for neg since we have two different standard mixes. 
-
----
-
-#### Specific Questions
-
-
---- 
 
 *Confidence Level 1*
 
@@ -41,11 +32,17 @@ New standards MS2: It's actually 12 total injections for pos and 12 for neg sinc
 
 - Match unknown experimental values to MoNA and Metlin dataframes (which will be updated either every quarter, or as often as necessary). 
 
+MoNA:
+
+- Only for mass features that have MS2 (otherwise not eligible for "level 2" confidence match.
+
 
 
 #### Ongoing issues
 Issues that will need to be fixed eventually
 
+- Transform MS2 from MSP --> standards list in the KRH spectral format.
+  + This step will require cleaning, including but not limited to no intensities below 1 (throw out all those tiny fragment spectra), scale intensity so the biggest value is 100, and then order by descending intensity. intensity needs to be descending and scaled so the biggest value is 100.
 - Tidy up the workflow of the mz/rt/ms2/z/column dataframe to a Confidence Level 1 annotated dataframe.
 - Set up flexible equation for Total.Similarity score.
 - The dataframes to be annotated are from a variety of sources (xcms, MSDIAL), and are presented in a variety of formats and curation levels.
@@ -57,6 +54,7 @@ Issues that will need to be fixed eventually
 - Make a function to investigate which columns are only NULL.
 - For now, using given tolerance values is fine, but eventually we should be calculating it from the fuzzyjoin tolerance *clarify this later with KRH*.
 - For now, we can compare to our own spectra and use 0.02 as tolerance. Revisit later to make it into ppm space.
+- Need to ensure both positive and negative functions/dataframes are all up to scratch. 
 
 
 #### Other notes

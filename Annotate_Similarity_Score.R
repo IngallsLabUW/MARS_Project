@@ -2,6 +2,21 @@ library(tidyverse)
 source("Functions.R")
 options(digits = 6)
 
+
+# cosine1: dot product, compares, works well when you have fragments that match between two compounds. 
+# sometimes when things fragments, you see difference between original/molecular mass, 
+# and that difference is indicitive of class.
+
+# cosine2: instead of comparing spectra on fragments, you compare on "shadow fragments", 
+# which helps classify the compound. It's not useful when asking "are they the same compound", 
+# but mostly when comparing two compounds in the same class; unknown spectra with similar neutral losses;
+# trying to figure out what the loss is. We should keep it around, but can comment out for now.
+# base mass - fragments for that. 
+
+# Candidates$Cosine2 <- apply(Candidates, 1, FUN=function(x) MSMScosine2_df(x)). 
+# Originally from the massbank mass positive match function in the MoNA_Matching script.
+
+
 MF_ClusterAssignments_Katherine <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") 
 
 
