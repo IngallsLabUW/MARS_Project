@@ -144,26 +144,39 @@ MSMScosine_1 <- function(scan1, scan2) {
   return(similarity)
 }
 
+# Get a scan table from a concatenated scanlist---- (Scan is output from getms2spectra function)
+# scantable <- function(Scan) {
+#   Try <- read.table(text=as.character(Scan),
+#                     col.names = c("mz","intensity"), fill = TRUE) %>% 
+#     mutate(mz = as.numeric(mz %>% str_replace(",", "")),
+#            intensity = as.numeric(intensity %>% str_replace(";", ""))) %>%
+#     mutate(intensity = round(intensity/max(intensity)*100, digits = 1)) %>%
+#     filter(intensity > 0.5) %>%
+#     arrange(desc(intensity))
+#   
+#   return(Try)
+# }  
+
 #Check against MassBank Spectrum (m/z and spectra match for putative ID)
 # I'd look at MSMScosine_1_df to see how you can feed in a df of mass1, mass2, scan1 (in my format), scan2 and get an output of df$cosine.
-MSMScosine1_df <- function(df) {
-  scan1 <- scantable(df["scan1"])
-  scan2 <- scantable(df["scan2"])
-  mass1 <- df["mass1"]
-  mass2 <- df["mass2"]
-  
-  mztolerance<-0.02
-  
-  w1<-(scan1[,1]^2)*sqrt(scan1[,2])
-  w2<-(scan2[,1]^2)*sqrt(scan2[,2])
-  
-  diffmatrix<-sapply(scan1[,1], function(x) scan2[,1]-x)
-  sameindex<-which(abs(diffmatrix)<mztolerance,arr.ind=T)
-  
-  similarity<-sum(w1[sameindex[,2]]*w2[sameindex[,1]])/(sqrt(sum(w2^2))*sqrt(sum(w1^2)))
-  
-  return(similarity)
-}
+# MSMScosine1_df <- function(df) {
+#   scan1 <- scantable(df["scan1"])
+#   scan2 <- scantable(df["scan2"])
+#   mass1 <- df["mass1"]
+#   mass2 <- df["mass2"]
+#   
+#   mztolerance<-0.02
+#   
+#   w1<-(scan1[,1]^2)*sqrt(scan1[,2])
+#   w2<-(scan2[,1]^2)*sqrt(scan2[,2])
+#   
+#   diffmatrix <- sapply(scan1[, 1], function(x) scan2[, 1] - x)
+#   sameindex <- which(abs(diffmatrix)<mztolerance,arr.ind=T)
+# 
+#   similarity<-sum(w1[sameindex[,2]]*w2[sameindex[,1]])/(sqrt(sum(w2^2))*sqrt(sum(w1^2)))
+# 
+#   return(similarity)
+# }
 
 MSMScosine2_df <- function(df){
   scan1 <- scantable(df["scan1"])
@@ -188,16 +201,5 @@ MSMScosine2_df <- function(df){
   return(similarity2)
 }
 
-# Get a scan table from a concatenated scanlist---- (Scan is output from getms2spectra function)
-scantable <- function(Scan) {
-  Try <- read.table(text=as.character(Scan),
-                    col.names=c('mz','intensity')) %>% 
-    mutate(mz = as.numeric(mz %>% str_replace(",", "")),
-           intensity = as.numeric(intensity %>% str_replace(";", ""))) %>%
-    mutate(intensity = round(intensity/max(intensity)*100, digits = 1))%>%
-    filter(intensity > 0.5) %>%
-    arrange(desc(intensity)) 
   
-  return(Try)
-}    
 
