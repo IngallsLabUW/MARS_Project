@@ -9,6 +9,10 @@ MSMScosine1_df <- function(df) {
   scan2 <- scantable(df["scan2"])
   mass1 <- df["mass1"]
   mass2 <- df["mass2"]
+  print("scan1")
+  print(scan1)
+  print("scan2")
+  print(scan2)
   
   mztolerance<-0.02
   
@@ -16,6 +20,8 @@ MSMScosine1_df <- function(df) {
   w2<-(scan2[,1]^2)*sqrt(scan2[,2])
   
   diffmatrix <- sapply(scan1[, 1], function(x) scan2[, 1] - x)
+  print("diffmatrix")
+  print(diffmatrix)
   sameindex <- which(abs(diffmatrix)<mztolerance,arr.ind=T)
   
   similarity<-sum(w1[sameindex[,2]]*w2[sameindex[,1]])/(sqrt(sum(w2^2))*sqrt(sum(w1^2)))
@@ -52,12 +58,19 @@ MS2 <- as.character(Experimental.Spectra["MS2"])
 MF.Fraction <- as.data.frame(Experimental.Spectra["MF.Fraction"]) 
 
 Experimental.Spectra.ForJoin <- Experimental.Spectra %>% 
-  rename(MH_mass = mz) 
+  rename(MH_mass = mz) %>%
+  mutate(No.MS2 = ifelse(is.na(MS2), TRUE, FALSE)) %>%
+  filter(No.MS2 == FALSE) %>%
+  select(-No.MS2)
 
 # Subtract hydrogen for reference database
 MoNA.Spectra.MHMass <- MoNA.Spectra %>%
   mutate(MH_mass = M_mass - 1.0072766) %>%
-  select(ID, Names, spectrum_KRHform_filtered, MH_mass)
+  select(ID, Names, spectrum_KRHform_filtered, MH_mass) 
+MoNA.Spectra.MHMass[MoNA.Spectra.MHMass==""]<-NA
+MoNA.Spectra.MHMass <- MoNA.Spectra.MHMass %>%
+  drop_na()
+
 
 ## Example masses for testing
 testmass1 <- 116.07093 
@@ -77,7 +90,7 @@ MakeCandidates <- function(MoNA.Mass) {
   Candidates <- MoNA.Spectra.MHMass %>% 
     filter(MH_mass > MoNA.Mass - 0.020,  
            MH_mass < MoNA.Mass + 0.020) %>% 
-  difference_inner_join(Experimental.Spectra.ForJoin, by = "MH_mass", max_dist = 0.02) %>%  ### SOMETHING HAPPENING HERE
+  difference_inner_join(Experimental.Spectra.ForJoin, by = "MH_mass", max_dist = 0.02) %>% 
   mutate(scan1 = spectrum_KRHform_filtered, # scan1 is MS2 from MoNA
          scan2 = MS2, # scan2 is MS2 from the experimental data
          mass1 = MH_mass.x, # mass1 is the primary mass from MoNA
@@ -96,7 +109,7 @@ MakeCandidates <- function(MoNA.Mass) {
   # Add cosine similarity scores
   print("Making potential candidates")
 
-  Candidates$Cosine1 <- apply(Candidates, 1, FUN=function(x) MSMScosine1_df(x)) # this is being made into a list. why
+  Candidates$Cosine1 <- apply(Candidates, 1, FUN=function(x) MSMScosine1_df(x)) 
 
   Candidates.Filtered.Cosine <- Candidates %>%
     filter(Cosine1 > Cosine.Score.Cutoff) %>%
@@ -107,12 +120,12 @@ MakeCandidates <- function(MoNA.Mass) {
            MassBankppm = abs(mass1 - mass2) / mass2 * 10^6,
            MassBankCosine1 = Cosine1) %>%
     unique() %>%
-    #filter(MassBankppm < MassBank.ppm.Cutoff) %>% # In the current data, this step removes everything.
+    #filter(MassBankppm < MassBank.ppm.Cutoff) %>% 
     select(MF.Fraction, MassBankMatch:MassBankCosine1)
 
   return(Final.Candidates)
 }
 
-output <- lapply(unique(testdf$MH_mass), MakeCandidates)
+output <- lapply(unique(MoNA.Spectra.MHMass$MH_mass), MakeCandidates)
 outputdf <- bind_rows(output)
 
