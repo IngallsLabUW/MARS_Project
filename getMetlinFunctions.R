@@ -12,6 +12,8 @@ resp <- POST(auth_url, body = list(
 ), add_headers(referer="https://metlin.scripps.edu/landing_page.php?pgcontent=mainPage"))
 content(resp)
 
+# ^ This will let you scrape for a while. Account with metlin, make a profile there. May time out after ~ 1000?
+# Currently there is not a "base sheet" like what Katherine has from MoNA
 
 # getMetlinMz ----
 #' Obtain Metlin data for a given mz and ppm.
@@ -180,7 +182,7 @@ getMetlinName <- function(name){
 #' getMetlinMS2(287) #Betaine
 #'
 #' @export
-getMetlinMS2 <- function(cmpd_id){
+getMetlinMS2 <- function(cmpd_id){ # punched in as the key
   if(!is.numeric(cmpd_id)|cmpd_id<=0){
     stop("Mass must be positive and numeric")
   }

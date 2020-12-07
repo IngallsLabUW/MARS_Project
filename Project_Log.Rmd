@@ -13,10 +13,20 @@ output:
 This is an ongoing log: a place for build notes and questions.
 *This is not to be confused with the Design Doc on the Shared Google Drive; that is for overall design direction and team suggestions. It is also not a README, which will be written closer to project completion.*
 
+
+
+#### Comments and questions for December 8 
+- "From literature" ranking stats: I have in my notes that this can wait until later. That still the case or would we like to prioritize rounding off ranking level 2?
+- Review Metlin status: no base sheet exists but we should be able to get there with time.
+- MoNA matching: It's working, but not well. mclapply seems like a logical choice but debugging is very challenging, unless I can figure out how to use it in a reasonable time frame I will move on to a different option. Suggestions welcome but I would strongly prefer not to use plyr. Biome cparallel is an option. 
+- Moving to rank 3: I have the KEGG functions from KRH and am starting to work through those. Katherine mentioned HMDB in the design doc, does anything already exist for that? I don't see it in the original functions sheet. Ditto for PubMed.
+- can I give an update on this to the lab before xmas? Will we be meeting that week? 
+
 #### TODO: 
 What is being worked on right now
 
-- Match experimental unknowns with MoNA dataframes. 
+- Match experimental unknowns with MoNA dataframes and parallelize that.
+- Incorporate the existing Metlin scraping structure into a database that will grow with each successive scrape.
 
 New standards MS2: It's actually 12 total injections for pos and 12 for neg since we have two different standard mixes. 
 
