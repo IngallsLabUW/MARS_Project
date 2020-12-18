@@ -19,6 +19,7 @@ What is being worked on right now
 
 - Match experimental unknowns with MoNA dataframes and parallelize that.
 - Incorporate the existing Metlin scraping structure into a database that will grow with each successive scrape.
+- Run through the KEGG matching functions. 
 
 New standards MS2: It's actually 12 total injections for pos and 12 for neg since we have two different standard mixes. 
 
@@ -60,6 +61,7 @@ Issues that will need to be fixed eventually
 - For now, using given tolerance values is fine, but eventually we should be calculating it from the fuzzyjoin tolerance *clarify this later with KRH*.
 - For now, we can compare to our own spectra and use 0.02 as tolerance. Revisit later to make it into ppm space.
 - Need to ensure both positive and negative functions/dataframes are all up to scratch. 
+- Integrate the standards' MS2 with that.  
 
 
 #### Other notes

@@ -130,7 +130,9 @@ MakeCandidates <- function(MoNA.Mass) {
 }
 
 output <- lapply(unique(MoNA.Spectra.MHMass$MH_mass), MakeCandidates)
-outputdf <- bind_rows(output)
+outputdf <- bind_rows(output) %>%
+  unique() ## Temp fix, need to remove the duplication/explosion issue
+write.csv(outputdf, "data_processed/MoNA_Output_df.csv") # also a temp writeout
 
 #test <- mclapply(unique(MoNA.Spectra.MHMass$MH_mass), MakeCandidates, detectCores())
 

@@ -1,24 +1,32 @@
-#Check against the KEGG list of compounds -----
-
+library(janitor)
+library(tidyverse)
 
 KEGGCompounds_withMasses <- read.csv("data_extra/KEGGCompounds_withMasses.csv", header = TRUE)
-CommonContams <- read.csv("data_extra/CommonContams.csv", header = TRUE)
+CommonContams <- read.csv("data_extra/CommonContams.csv", header = FALSE) %>%
+  slice(-1) %>%
+  row_to_names(row = 1) 
+MFs.frame <- read.csv("data_processed/MoNA_Output_df.csv") %>%
+  rename(MF_Frac = MF.Fraction) %>%
+  rename(mz = mass2) # temporary rename for initial runthough 
 
-checkKEGG <- function(MFs, ppmtol) { # Guessing MFs is the mass features from the experiment? Modified version of the MF clusters?
+#Check against the KEGG list of compounds -----
+checkKEGG <- function(MFs, ppmtol) { # probably from the output of the MoNA matchings
   if(missing(ppmtol)) {
     ppmtol <- 5
   }
   matchedKEGGs <- list()
-  keggCompounds <- read.csv(text = getURL("https://raw.githubusercontent.com/kheal/Example_Untargeted_Metabolomics_Workflow/master/KEGGCompounds_withMasses.csv"), header = T) %>% rename(Compound= OtherCmpds)
+  keggCompounds <- KEGGCompounds_withMasses %>%
+    rename(Compound = OtherCmpds)
   keggPos <- keggCompounds %>% select(Compound, PosMZ) %>% 
     mutate(Fraction1 = "HILICPos", Fraction2="CyanoAq", Fraction3= "CyanoDCM") %>% unique() %>% 
     rename(mz = PosMZ)
   keggCompoundsShort <- keggCompounds %>% select(Compound, NegMZ) %>% 
     mutate(Fraction1 = "HILICNeg", Fraction2=NA, Fraction3= NA) %>% unique() %>%
     rename(mz = NegMZ) %>% rbind(keggPos)
-  MFstry <- MFs %>% mutate(MF_Frac2 = MF_Frac) %>% separate(MF_Frac2, c("MF", "Frac"), sep =  "_") %>% select(-MF)
+  # MFstry <- MFs %>% mutate(MF_Frac2 = MF_Frac) %>% separate(MF_Frac2, c("MF", "Frac"), sep =  "_") %>% select(-MF) # original
+  MFstry <- MFs %>% mutate(MF_Frac2 = MF_Frac) %>% separate(MF_Frac2, c("MF", "Frac"), sep =  "_X_") %>% select(-MF) 
   matched <- difference_inner_join(x= keggCompoundsShort, y = MFstry, 
-                                   by = "mz", max_dist = .01,  distance_col = NULL) %>%
+                                   by = "mz", max_dist = .01, distance_col = NULL) %>%
     mutate(ppm = (abs(mz.x-mz.y )/mz.x *10^6)) %>%
     filter(ppm < ppmtol, Frac == Fraction1 | Frac == Fraction2 | Frac == Fraction3) %>%
     mutate(Frac = as.factor(Frac),mz = mz.x) %>% 
@@ -36,6 +44,7 @@ checkKEGG <- function(MFs, ppmtol) { # Guessing MFs is the mass features from th
               KeggNames = as.character(paste(KEGGMatchesNames,  collapse="; ")))
   return(matchedKEGGs)}
 
+mytest <- checkKEGG(MFs.frame)
 
 
 #flag for known Contaminants -------
@@ -43,10 +52,17 @@ checkContaminants <- function(MFs, ppmtol) {
   if(missing(ppmtol)) {
     ppmtol <- 15
   }
+  ppmtol <- 15 # temp line for function run through 
   matchedKnownContaminants <- list()
-  knownContaminants <- read.csv(text = getURL("https://raw.githubusercontent.com/kheal/Example_Untargeted_Metabolomics_Workflow/master/CommonContams.csv"), comment.char = "#", header = T)%>%
-    mutate(mz = m.z) %>% select(Fraction1:Fraction3, mz, Compound) %>% mutate(Flag = "PossibleContamin")
-  MFstry <- MFs %>% mutate(MF_Frac2 = MF_Frac) %>% separate(MF_Frac2, c("MF", "Frac"), sep =  "_") %>% select(-MF)
+  knownContaminants <- CommonContams %>% 
+    mutate(mz = m.z) %>% 
+    mutate(mz = as.numeric(mz)) %>%
+    select(Fraction1:Fraction3, mz, Compound) %>% 
+    mutate(Flag = "PossibleContamin")
+  MFstry <- MFs %>% 
+    mutate(MF_Frac2 = MF_Frac) %>% 
+    separate(MF_Frac2, c("MF", "Frac"), sep =  "_X_") %>% # modified sep  
+    select(-MF)
   matchedKnownContaminants[[1]] <- difference_inner_join(x= knownContaminants, y = MFstry, 
                                                          by = "mz", max_dist = .01,  distance_col = NULL) %>%
     mutate(ppm = (abs(mz.x-mz.y )/mz.x *10^6)) %>%
@@ -61,3 +77,5 @@ checkContaminants <- function(MFs, ppmtol) {
               Contamppm = as.character(paste(Contamppm,  collapse="; ")))
   return(matchedKnownContaminants)
 }
+
+mytest2 <- checkContaminants(MFs.frame)
