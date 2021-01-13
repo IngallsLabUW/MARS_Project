@@ -47,8 +47,11 @@ scantable <- function(Scan) {
 Cosine.Score.Cutoff <- 0.5 
 MassBank.ppm.Cutoff <- 5
 
-# One of four relational spreadsheets from the MoNA download
-MoNA.Spectra <- read.csv("data_extra/NEG_Spectra.csv") 
+# Four relational spreadsheets from the MoNA download
+MoNA.Spectra <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_Spectra.csv") 
+MoNA.Names <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_Names.csv")
+MoNA.MetaData <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_MetaData.csv")
+MoNA.CmpInfo <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_CmpInfo.csv")
 
 Experimental.Spectra <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>% 
   rename(MF.Fraction = MassFeature_Column) %>%
@@ -129,10 +132,26 @@ MakeCandidates <- function(MoNA.Mass) {
   return(Final.Candidates)
 }
 
-output <- lapply(unique(MoNA.Spectra.MHMass$MH_mass), MakeCandidates)
-outputdf <- bind_rows(output) %>%
-  unique() ## Temp fix, need to remove the duplication/explosion issue
-write.csv(outputdf, "data_processed/MoNA_Output_df.csv") # also a temp writeout
 
-#test <- mclapply(unique(MoNA.Spectra.MHMass$MH_mass), MakeCandidates, detectCores())
+numCores <- detectCores()
+numCores
+
+
+system.time(
+  output_noparallel <- lapply(unique(MoNA.Spectra.MHMass$MH_mass), MakeCandidates)
+)
+# user  system elapsed 
+# 111.355   0.773 111.041 
+outputdf <- bind_rows(output) %>%
+  unique()
+## Temp fix, need to remove the duplication/explosion issue
+# write.csv(outputdf, "data_processed/MoNA_Output_df.csv") # also a temp writeout
+
+system.time(
+  output_parallel <- mclapply(MoNA.Spectra.MHMass["MH_mass"], MakeCandidates, mc.cores = numCores)
+)
+# user  system elapsed 
+# 15.071   0.172  15.073 
+
+
 

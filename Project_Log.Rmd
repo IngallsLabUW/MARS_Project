@@ -7,19 +7,38 @@ output:
   pdf_document: default
 ---
 
+Individual runs. Both standards mixes in water at series of concentrations.
+  - Annotated by user-defined text library, total score, MS1 isotopes vs. msms spectrum
+  - HILICNeg individual runs vs
+  
+HILICPosMS2.
+  - Missing compounds. MYCOLUMN?
+  
+HILIC Pos Batches
+  - Mostly the same as the individual runs?
+  - PeakID_HILC_Pos Missing standards looks like alignment results
+  
+AlignmentResults (HILICNeg, plain AlignmentResults)
+  - What are the values (Lots of -2, various numbers from around 300 - 600) 
+
+
+Individual run #s at end are different collision energies
+Lots of the unknowns aren't even real peaks. Some of them might be? Hypothetically there shouldn't be anything but standards, but there is noise and junk in there.
+Alignment results first? Look at those, peak ID. Probably can get rid of unknowns in the alignment results.
+Peak ID should be used as the key to find the correct individual results. That should be the "key", and then the MSMS data is in the individual samples. 
+
+
+
+
 
 ### MARS Project Log
 
 This is an ongoing log: a place for build notes and questions.
 *This is not to be confused with the Design Doc on the Shared Google Drive; that is for overall design direction and team suggestions. It is also not a README, which will be written closer to project completion.*
 
-
 #### TODO: 
 What is being worked on right now
 
-- Match experimental unknowns with MoNA dataframes and parallelize that.
-- Incorporate the existing Metlin scraping structure into a database that will grow with each successive scrape.
-- Run through the KEGG matching functions. 
 
 New standards MS2: It's actually 12 total injections for pos and 12 for neg since we have two different standard mixes. 
 
@@ -62,6 +81,9 @@ Issues that will need to be fixed eventually
 - For now, we can compare to our own spectra and use 0.02 as tolerance. Revisit later to make it into ppm space.
 - Need to ensure both positive and negative functions/dataframes are all up to scratch. 
 - Integrate the standards' MS2 with that.  
+- Match experimental unknowns with MoNA dataframes and parallelize that.
+- Incorporate the existing Metlin scraping structure into a database that will grow with each successive scrape.
+- Run through the KEGG matching functions. 
 
 
 #### Other notes
