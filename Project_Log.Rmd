@@ -12,7 +12,7 @@ Individual runs. Both standards mixes in water at series of concentrations.
   - HILICNeg individual runs vs
   
 HILICPosMS2.
-  - Missing compounds. MYCOLUMN?
+  - Is there a matching HILICNegMS2?
   
 HILIC Pos Batches
   - Mostly the same as the individual runs?
@@ -20,12 +20,15 @@ HILIC Pos Batches
   
 AlignmentResults (HILICNeg, plain AlignmentResults)
   - What are the values (Lots of -2, various numbers from around 300 - 600) 
+  
+HILIC pos Batch1, Batch2? Same as HILICNeg_Individual and _Alignment?
 
 
 Individual run #s at end are different collision energies
 Lots of the unknowns aren't even real peaks. Some of them might be? Hypothetically there shouldn't be anything but standards, but there is noise and junk in there.
 Alignment results first? Look at those, peak ID. Probably can get rid of unknowns in the alignment results.
 Peak ID should be used as the key to find the correct individual results. That should be the "key", and then the MSMS data is in the individual samples. 
+-2 means the peak wasn't picked
 
 
 

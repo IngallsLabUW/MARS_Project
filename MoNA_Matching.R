@@ -4,9 +4,46 @@ library(tidyverse)
 source("Functions.R")
 source("KRH_Functions.R")
 
+MakeCandidates <- function(MoNA.Mass) {
+  Candidates <- MoNA.Spectra.MHMass %>% 
+    filter(MH_mass > MoNA.Mass - 0.020,  
+           MH_mass < MoNA.Mass + 0.020) %>% 
+    difference_inner_join(Experimental.Spectra.ForJoin, by = "MH_mass", max_dist = 0.02) %>% 
+    mutate(scan1 = spectrum_KRHform_filtered, # scan1 is MS2 from MoNA
+           scan2 = MS2, # scan2 is MS2 from the experimental data
+           mass1 = MH_mass.x, # mass1 is the primary mass from MoNA
+           mass2 = MH_mass.y) # mass2 is the primary mass from experimental data
+  
+  if (length(Candidates$ID) == 0) {
+    print("There are no potential candidates.")
+    No.Match.Return <- MF.Fraction %>%
+      mutate(MassBankMatch = NA,
+             MassBankppm = NA,
+             MassBankCosine1 = NA)
+    
+    return(No.Match.Return)
+  }
+  
+  # Add cosine similarity scores
+  print("Making potential candidates")
+  
+  Candidates$Cosine1 <- apply(Candidates, 1, FUN=function(x) MSMScosine1_df(x)) 
+  
+  Candidates.Filtered.Cosine <- Candidates %>%
+    filter(Cosine1 > Cosine.Score.Cutoff) %>%
+    arrange(desc(Cosine1))
+  
+  Final.Candidates <- Candidates.Filtered.Cosine %>%
+    mutate(MassBankMatch = paste(Names, ID, sep = " ID:"),
+           MassBankppm = abs(mass1 - mass2) / mass2 * 10^6,
+           MassBankCosine1 = Cosine1) %>%
+    unique() %>%
+    filter(MassBankppm < MassBank.ppm.Cutoff) #%>% 
+  #select(MF.Fraction, MassBankMatch:MassBankCosine1)
+  
+  return(Final.Candidates)
+}
 
-### Takes forever. Parallelization is not working right now.
-### Creating many duplicate rows. Join explosion is happening.
 MSMScosine1_df <- function(df) {
   scan1 <- scantable(df["scan1"])
   scan2 <- scantable(df["scan2"])
@@ -53,6 +90,7 @@ MoNA.Names <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_Names.csv")
 MoNA.MetaData <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_MetaData.csv")
 MoNA.CmpInfo <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_CmpInfo.csv")
 
+# Experimental spectra from lab 
 Experimental.Spectra <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>% 
   rename(MF.Fraction = MassFeature_Column) %>%
   select(MF.Fraction, mz, MS2) %>%
@@ -65,9 +103,9 @@ MF.Fraction <- as.data.frame(Experimental.Spectra["MF.Fraction"])
 
 Experimental.Spectra.ForJoin <- Experimental.Spectra %>% 
   rename(MH_mass = mz) %>%
-  mutate(No.MS2 = ifelse(is.na(MS2), TRUE, FALSE)) %>%
-  filter(No.MS2 == FALSE) %>%
-  select(-No.MS2)
+  mutate(Has.MS2 = ifelse(is.na(MS2), FALSE, TRUE)) %>%
+  filter(Has.MS2 == TRUE) %>% # Matching only on MS2 cosine similarity
+  select(-Has.MS2)
 
 # Subtract hydrogen for reference database
 MoNA.Spectra.MHMass <- MoNA.Spectra %>%
@@ -76,62 +114,6 @@ MoNA.Spectra.MHMass <- MoNA.Spectra %>%
 MoNA.Spectra.MHMass[MoNA.Spectra.MHMass==""]<-NA
 MoNA.Spectra.MHMass <- MoNA.Spectra.MHMass %>%
   drop_na()
-
-
-## Example masses for testing
-testmass1 <- 116.07093 
-testmass2 <- 74.02475
-
-testdf1 <- MoNA.Spectra.MHMass %>%
-  filter(MH_mass > testmass1 - 0.020,  
-         MH_mass < testmass1 + 0.020) 
-testdf2 <- MoNA.Spectra.MHMass %>%
-  filter(MH_mass > testmass2 - 0.020,  
-         MH_mass < testmass2 + 0.020) 
-testdf <- testdf1 %>% rbind(testdf2) %>%
-  arrange(MH_mass)
-
-## Full function
-MakeCandidates <- function(MoNA.Mass) {
-  Candidates <- MoNA.Spectra.MHMass %>% 
-    filter(MH_mass > MoNA.Mass - 0.020,  
-           MH_mass < MoNA.Mass + 0.020) %>% 
-    difference_inner_join(Experimental.Spectra.ForJoin, by = "MH_mass", max_dist = 0.02) %>% 
-    mutate(scan1 = spectrum_KRHform_filtered, # scan1 is MS2 from MoNA
-           scan2 = MS2, # scan2 is MS2 from the experimental data
-           mass1 = MH_mass.x, # mass1 is the primary mass from MoNA
-           mass2 = MH_mass.y) # mass2 is the primary mass from experimental data
-  
-  if (length(Candidates$ID) == 0) {
-    print("There are no potential candidates.")
-    No.Match.Return <- MF.Fraction %>%
-      mutate(MassBankMatch = NA,
-             MassBankppm = NA,
-             MassBankCosine1 = NA)
-    
-    return(No.Match.Return)
-  }
-  
-  # Add cosine similarity scores
-  print("Making potential candidates")
-  
-  Candidates$Cosine1 <- apply(Candidates, 1, FUN=function(x) MSMScosine1_df(x)) 
-  
-  Candidates.Filtered.Cosine <- Candidates %>%
-    filter(Cosine1 > Cosine.Score.Cutoff) %>%
-    arrange(desc(Cosine1))
-  
-  Final.Candidates <- Candidates.Filtered.Cosine %>%
-    mutate(MassBankMatch = paste(Names, ID, sep = " ID:"),
-           MassBankppm = abs(mass1 - mass2) / mass2 * 10^6,
-           MassBankCosine1 = Cosine1) %>%
-    unique() %>%
-    filter(MassBankppm < MassBank.ppm.Cutoff) #%>% 
-  #select(MF.Fraction, MassBankMatch:MassBankCosine1)
-  
-  return(Final.Candidates)
-}
-
 
 numCores <- detectCores()
 numCores
