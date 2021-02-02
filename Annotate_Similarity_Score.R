@@ -1,5 +1,5 @@
 library(tidyverse)
-source("Functions.R")
+source("KRH_Functions.R")
 options(digits = 6)
 
 
@@ -16,12 +16,26 @@ options(digits = 6)
 # Candidates$Cosine2 <- apply(Candidates, 1, FUN=function(x) MSMScosine2_df(x)). 
 # Originally from the massbank mass positive match function in the MoNA_Matching script.
 
-
+## Katherine csv: fully curated
 MF_ClusterAssignments_Katherine <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") 
+Cyano.MS2 <- read.csv("data_extra/Cyano_stds_withMS2s.csv") %>%
+  mutate(Column = "Cyano")
+HILICPos.MS2 <- read.csv("data_extra/HILICPos_stds_withMS2s.csv") %>%
+  mutate(Column = "HILICPos")
+HILICNeg.MS2 <- read.csv("data_extra/HILICNeg_stds_withMS2s.csv") %>%
+  mutate(Column = "HILICNeg")
+
+Standards.MS2 <- Cyano.MS2 %>% 
+  rbind(HILICPos.MS2, HILICNeg.MS2) 
+
+# Betaine Example ---------------------------------------------------
+betaine_exp <- MF_ClusterAssignments_Katherine %>%
+  filter(Identification == "Betaine") %>%
+  select(-contains("cluster"))
 
 
-# Uracil Example ---------------------------------------------------
-Uracil.standard.msp <- read.delim("data_extra/Ingalls_HILICNeg_Standards.msp", header = FALSE, sep = "") %>%
+# Uracil Example (from old MSP format) ---------------------------------------------------
+Uracil.standard.msp <- read.delim("data_extra/Ingalls_HILICNeg_Standards(OLD_FORMAT).msp", header = FALSE, sep = "") %>%
   slice(56:66) %>%
   rename(mz = 1, intensity = 2) %>%
   mutate(mz = as.numeric(mz),

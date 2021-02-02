@@ -9,14 +9,19 @@ output:
 
 ### MARS Project Log
 
+# TODO
+- In the standards list, there are some RP compounds with a z of -1. None of these compounds appear in the standard MS2 sheet; intentional? 
+- There are also some compounds (looks like all the cobalamin compounds) that actually have a z of 2
+- Cyano vs RP in the column. The most recent Ingalls Standards sheet uses RP, but the Standards MS2 data uses Cyano. Is there a preference?
+- Retention times on the MS2 sheet and the Ingalls standards sheet have some variability. Should I incorporate the collision energy into our ingalls standards, or be using that as a parameter on the experimental data (if it exists)? 
+
 This is an ongoing log: a place for build notes and questions.
 *This is not to be confused with the Design Doc on the Shared Google Drive; that is for overall design direction and team suggestions. It is also not a README, which will be written closer to project completion.*
 
-#### TODO: 
 What is being worked on right now
 
-Streamlining the process for putative standards ID. 
-
+Streamlining the process for import and standards-related ID.
+1. Standard import file with feature, mz, rt, column, z, and ms2
 *Confidence Level 1*
 
 - Use [FuzzyJoin](http://varianceexplained.org/fuzzyjoin/) to match m/z, rt, column, and z for positive IDs and return a dataframe of matches. 
@@ -39,29 +44,22 @@ KEGG: in progress
 
 
 #### Ongoing issues
-Issues that will need to be fixed eventually
+Issues that will need to be fixed
 
-- Transform MS2 from MSP --> standards list in the KRH spectral format.
-  + This step will require cleaning, including but not limited to no intensities below 1 (throw out all those tiny fragment spectra), scale intensity so the biggest value is 100, and then order by descending intensity. intensity needs to be descending and scaled so the biggest value is 100.
-- Tidy up the workflow of the mz/rt/ms2/z/column dataframe to a Confidence Level 1 annotated dataframe.
+- Incorporate existing KRH code to easily update the standards MS2 data.
+  + This step will require cleaning, including but not limited to no intensities below 1 (throw out all those tiny fragment spectra), scale intensity so the biggest value is 100, and then order by descending intensity.
+- Decide on order of matching parameters: column, z, mz, rt, ms2? 
 - Set up flexible equation for Total.Similarity score.
-- The dataframes to be annotated are from a variety of sources (xcms, MSDIAL), and are presented in a variety of formats and curation levels.
-- Input will need to be standardized, through the annotation functions. Eventually that script/function process will be part of the R package. 
-- "w/o MS2:" on identified compounds is from MSDIAL output and currently isn't matching that we should rely on.
-- Need to replace old compound names with new ones! Will work on that later.
-- Need to reliably translate msp files for incorporation. KRH has a json translation but not msp. 
-- Also we stds list, but we don't know the collision energy. 
-- Make a function to investigate which columns are only NULL.
+- The dataframes to be annotated are from a variety of sources (xcms, MSDIAL), and are presented in a variety of formats and curation levels. Input will need to be standardized.
+- Need to replace old compound names with new ones!
 - For now, using given tolerance values is fine, but eventually we should be calculating it from the fuzzyjoin tolerance *clarify this later with KRH*.
 - For now, we can compare to our own spectra and use 0.02 as tolerance. Revisit later to make it into ppm space.
-- Need to ensure both positive and negative functions/dataframes are all up to scratch. 
-- Integrate the standards' MS2 with that.  
-- Match experimental unknowns with MoNA dataframes and parallelize that.
 - Incorporate the existing Metlin scraping structure into a database that will grow with each successive scrape.
 - Run through the KEGG matching functions. 
-
+- Tidy and rename variables in nearly all steps.
 
 #### Other notes
+- "w/o MS2:" on identified compounds is from MSDIAL output and currently isn't matching that we should rely on.
 - Remember, you can get the score w/out MS2! The eventual full function should be able to do both.
 - Will can make an MS2 library for stds
 - Naming schemes are all different for unique mass features
