@@ -35,7 +35,7 @@ Standards <- read.csv("data_extra/Ingalls_Lab_Standards_Feb1.csv") %>%
 ## Confidence Level 1 Matching ----------------------------------------
 Knowns <- Standards %>% # our known standards
   left_join(Standards.MS2, by = c("compound", "Column", "z")) %>%
-  rename(Rt.seconds_Standards = rt.x,
+  rename(RT.seconds_Standards = rt.x,
          RT.seconds_MS2s = rt.y)
 
 Unknowns <- Experimental.Values %>% # Experimental
@@ -55,7 +55,7 @@ MyFuzzyJoin <- Unknowns %>%
          Column_Standards = Column.y,
          z_Standards = z.y,
          MS2_Standards = MS2.y) %>%
-  select(Unknown.Compound, KRH.Identification, Compound_Standards, mz_Unknowns, mz_Standards, RT.seconds_Unknowns, Rt.seconds_Standards, RT.seconds_MS2s, 
+  select(Unknown.Compound, KRH.Identification, Compound_Standards, mz_Unknowns, mz_Standards, RT.seconds_Unknowns, RT.seconds_Standards, RT.seconds_MS2s, 
          Column_Unknowns, Column_Standards, z_Unknowns, z_Standards, MS2_Unknowns, MS2_Standards) 
 
 ## Confidence Level A1 ----------------------------------------
@@ -63,85 +63,16 @@ A1Confidence <- MyFuzzyJoin %>% # mz and 0.02 RT
   filter(z_Unknowns == z_Standards,
          Column_Unknowns == Column_Standards) %>%
   group_by(Unknown.Compound) %>%
-  filter(!Rt.seconds_Standards < (RT.seconds_Unknowns - 0.02) &
-           !Rt.seconds_Standards > (RT.seconds_Unknowns + 0.02)) %>%
-  ungroup() %>% ## 0.02 will change to "cutoff 1" or something
-  select(-RT.seconds_MS2s, -MS2_Unknowns, -MS2_Standards) %>%
-  unique()
-
-
-A1MS2 <- MyFuzzyJoin %>%
-  filter(Unknown.Compound %in% A1Confidence$Unknown.Compound) %>%
-  select(Unknown.Compound, Compound_Standards, MS2_Unknowns, MS2_Standards) 
-
-tosplit <- A1MS2 %>%
-  group_by(Unknown.Compound) %>% 
-  group_split()
-
-scantable_Unknowns <- lapply(tosplit, function(df) {
-  lapply(unique(df[, 3]), MakeScantable)
-})
-
-scantable_Standards <- lapply(tosplit, function(df){
-  apply(df[4], 1, MakeScantable)
-})
-
-####
-# Filter out NAs and put elsewhere since it doesn't matter anyway
-test <- A1MS2 %>%
+  filter(!RT.seconds_Standards < (RT.seconds_Unknowns - 0.02) &
+           !RT.seconds_Standards > (RT.seconds_Unknowns + 0.02)) %>% ## 0.02 will change to "cutoff 1" or something
   ungroup() %>%
-  slice(1:56) %>%
+  mutate(mz_Similarity = exp(-0.5 * ((mz_Unknowns - mz_Standards) / 0.02)),
+         RT_Similarity = exp(-0.5 * ((RT.seconds_Unknowns - RT.seconds_Standards) / 0.04))) %>% # Check cutoff and similarity of 1 always?
+  filter_at(vars(MS2_Unknowns, MS2_Standards),all_vars(!is.na(.))) %>%
   rowwise() %>% 
-  mutate(cosinesim= MS2CosineSimilarity(MakeScantable(MS2_Unknowns), MakeScantable(MS2_Standards)))
+  mutate(MS2cosinesim = MS2CosineSimilarity(MakeScantable(MS2_Unknowns), MakeScantable(MS2_Standards))) %>%
+  mutate(Total.Similarity.Score = ((MS2cosinesim + mz_Similarity + RT_Similarity) / 3) * 100)
 
-
-
-
-
-
-
-## Confidence Level 1 MS2 matching
-Uracil <- MyFuzzyJoin %>%
-  filter(Compound_Standards == "Uracil") %>%
-  select(Compound_Standards, MS2_Unknowns, MS2_Standards)
-
-Uracil.Standards <- Uracil %>%
-  select(MS2_Standards) %>%
-  slice(1) %>%
-  MakeScantable()
-
-Uracil.Experimental <- Uracil %>%
-  select(MS2_Unknowns) %>%
-  slice(1) %>%
-  MakeScantable()
-
-uracil.MS2cosine.sim <- MS2CosineSimilarity(scan1 = Uracil.Experimental, scan2 = Uracil.Standards)
-
-## MS1 Similarity --------------------------------
-uracil.krh <- Experimental.Values %>%
-  filter(Identification == "Uracil") %>%
-  select(Identification, mz, rt)
-
-uracil.standard <- read.csv("data_extra/Ingalls_Lab_Standards_Feb1.csv") %>%
-  mutate(rt = (RT..min. * 60),
-         mz = as.numeric(m.z)) %>%
-  rename(compound = Compound.Name_old) %>%
-  filter(compound == "Uracil") %>%
-  select(compound, mz, rt)
-
-exp.value.mz = uracil.krh$mz
-theor.value.mz = uracil.standard$mz
-
-exp.value.rt = uracil.krh$rt
-theor.value.rt = uracil.standard$rt
-
-MS1.mz.similarity <- exp(-0.5 * (((exp.value.mz - theor.value.mz) / 0.02) ^ 2))
-MS1.rt.similarity <- exp(-0.5 * (((exp.value.rt - theor.value.rt) / 0.4) ^ 2))
-
-# Total Similarity Score
-# TS = ((MS2 Similarity + MS1 Similarity) / 2) * 100
-Uracil.Total.Similarity_AllVariables <- ((uracil.MS2cosine.sim + MS1.mz.similarity + MS1.rt.similarity) / 3) * 100
-Uracil.Total.Similarity_NoMS2 <- ((MS1.mz.similarity + MS1.rt.similarity) / 2) * 100
 
 ## On to A2 confidence
 within10duplicate <- function(df, column) {
