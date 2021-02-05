@@ -9,11 +9,8 @@ output:
 
 ### MARS Project Log
 
-# TODO
-- In the standards list, there are some RP compounds with a z of -1. None of these compounds appear in the standard MS2 sheet; intentional? 
-- There are also some compounds (looks like all the cobalamin compounds) that actually have a z of 2
-- Cyano vs RP in the column. The most recent Ingalls Standards sheet uses RP, but the Standards MS2 data uses Cyano. Is there a preference?
 - Retention times on the MS2 sheet and the Ingalls standards sheet have some variability. Should I incorporate the collision energy into our ingalls standards, or be using that as a parameter on the experimental data (if it exists)? 
+- Total Similarity Score: include individual similarities in output? Example: Uracil as a 1:1 similarity on everything except MS2, which has a relatively poor similarity. That brings it down to .80 rather than a 1. These details can be an output of a potentially relational table? Is it worth filtering for collision energy (which MoNA has)?
 
 This is an ongoing log: a place for build notes and questions.
 *This is not to be confused with the Design Doc on the Shared Google Drive; that is for overall design direction and team suggestions. It is also not a README, which will be written closer to project completion.*
@@ -72,3 +69,4 @@ Issues that will need to be fixed
 Lots of the unknowns aren't even real peaks. Some of them might be? Hypothetically there shouldn't be anything but standards, but there is noise and junk in there.
 Alignment results first? Look at those, peak ID. Probably can get rid of unknowns in the alignment results.
 Peak ID should be used as the key to find the correct individual results. That should be the "key", and then the MSMS data is in the individual samples. New standards MS2: It's actually 12 total injections for pos and 12 for neg since we have two different standard mixes. 
+- Output should be relational, or a complete csv depending on who's looking/filtering. Wrapper in package should account for that. ie, how many matches come up and where are they from?

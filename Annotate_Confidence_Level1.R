@@ -1,6 +1,8 @@
 library(fuzzyjoin)
 library(tidyverse)
 
+source("Functions.R")
+
 
 # Experimental values
 Experimental.Values <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>%
@@ -28,12 +30,12 @@ Standards <- read.csv("data_extra/Ingalls_Lab_Standards_Feb1.csv") %>%
          m.z = as.numeric(m.z)) %>%
   rename(mz = m.z,
          compound = Compound.Name_old) %>%
-  select(compound, Column, rt, ionization_form, z)
+  select(compound, Column, rt, ionization_form, z) # no appreciable difference between mzs, easier to have just one
 
 ## Confidence Level 1 Matching ----------------------------------------
 Knowns <- Standards %>% # our known standards
   left_join(Standards.MS2, by = c("compound", "Column", "z")) %>%
-  rename(RT.seconds_standards = rt.x,
+  rename(Rt.seconds_Standards = rt.x,
          RT.seconds_MS2s = rt.y)
 
 Unknowns <- Experimental.Values %>% # Experimental
@@ -43,7 +45,8 @@ Unknowns <- Experimental.Values %>% # Experimental
 
 MyFuzzyJoin <- Unknowns %>%
   difference_left_join(Knowns, by = c("mz"), max_dist = 0.02) %>% # needs to be swapped out for variable
-  rename(mz_Unknowns = mz.x,
+  rename(Compound_Standards = compound,
+         mz_Unknowns = mz.x,
          Column_Unknowns = Column.x, # can switch these out for variables eventually?
          z_Unknowns = z.x,
          RT.seconds_Unknowns = rt,
@@ -52,58 +55,122 @@ MyFuzzyJoin <- Unknowns %>%
          Column_Standards = Column.y,
          z_Standards = z.y,
          MS2_Standards = MS2.y) %>%
-  select(Unknown.Compound, KRH.Identification, compound, mz_Unknowns, mz_Unknowns, RT.seconds_Unknowns, RT.seconds_standards, RT.seconds_MS2s, 
+  select(Unknown.Compound, KRH.Identification, Compound_Standards, mz_Unknowns, mz_Standards, RT.seconds_Unknowns, Rt.seconds_Standards, RT.seconds_MS2s, 
          Column_Unknowns, Column_Standards, z_Unknowns, z_Standards, MS2_Unknowns, MS2_Standards) 
 
+## Confidence Level A1 ----------------------------------------
 A1Confidence <- MyFuzzyJoin %>% # mz and 0.02 RT
-  filter(z.Unknowns == z.Standards,
-         Column.Unknowns == Column.Standards) %>%
+  filter(z_Unknowns == z_Standards,
+         Column_Unknowns == Column_Standards) %>%
   group_by(Unknown.Compound) %>%
-  filter(!RT.seconds.Standards < (RT.seconds.Unknowns - 0.02) &
-           !RT.seconds.Standards > (RT.seconds.Unknowns + 0.02)) ## 0.02 will change to "cutoff 1" or something
+  filter(!Rt.seconds_Standards < (RT.seconds_Unknowns - 0.02) &
+           !Rt.seconds_Standards > (RT.seconds_Unknowns + 0.02)) %>%
+  ungroup() %>% ## 0.02 will change to "cutoff 1" or something
+  select(-RT.seconds_MS2s, -MS2_Unknowns, -MS2_Standards) %>%
+  unique()
+
+
+A1MS2 <- MyFuzzyJoin %>%
+  filter(Unknown.Compound %in% A1Confidence$Unknown.Compound) %>%
+  select(Unknown.Compound, Compound_Standards, MS2_Unknowns, MS2_Standards) 
+
+tosplit <- A1MS2 %>%
+  group_by(Unknown.Compound) %>% 
+  group_split()
+
+scantable_Unknowns <- lapply(tosplit, function(df) {
+  lapply(unique(df[, 3]), MakeScantable)
+})
+
+scantable_Standards <- lapply(tosplit, function(df){
+  apply(df[4], 1, MakeScantable)
+})
+
+####
+# Filter out NAs and put elsewhere since it doesn't matter anyway
+test <- A1MS2 %>%
+  ungroup() %>%
+  slice(1:56) %>%
+  rowwise() %>% 
+  mutate(cosinesim= MS2CosineSimilarity(MakeScantable(MS2_Unknowns), MakeScantable(MS2_Standards)))
+
+
+
+
+
+
 
 ## Confidence Level 1 MS2 matching
-betaine_exp <- Experimental.Values %>%
-  filter(Identification == "Betaine") %>%
-  select(-contains("cluster"))
+Uracil <- MyFuzzyJoin %>%
+  filter(Compound_Standards == "Uracil") %>%
+  select(Compound_Standards, MS2_Unknowns, MS2_Standards)
 
-betaine_std <- Cyano.MS2 %>% 
-  rbind(HILICPos.MS2, HILICNeg.MS2) %>%
-  filter(compound == "Betaine",
-         Column == "HILICPos")
+Uracil.Standards <- Uracil %>%
+  select(MS2_Standards) %>%
+  slice(1) %>%
+  MakeScantable()
 
+Uracil.Experimental <- Uracil %>%
+  select(MS2_Unknowns) %>%
+  slice(1) %>%
+  MakeScantable()
 
+uracil.MS2cosine.sim <- MS2CosineSimilarity(scan1 = Uracil.Experimental, scan2 = Uracil.Standards)
 
+## MS1 Similarity --------------------------------
+uracil.krh <- Experimental.Values %>%
+  filter(Identification == "Uracil") %>%
+  select(Identification, mz, rt)
+
+uracil.standard <- read.csv("data_extra/Ingalls_Lab_Standards_Feb1.csv") %>%
+  mutate(rt = (RT..min. * 60),
+         mz = as.numeric(m.z)) %>%
+  rename(compound = Compound.Name_old) %>%
+  filter(compound == "Uracil") %>%
+  select(compound, mz, rt)
+
+exp.value.mz = uracil.krh$mz
+theor.value.mz = uracil.standard$mz
+
+exp.value.rt = uracil.krh$rt
+theor.value.rt = uracil.standard$rt
+
+MS1.mz.similarity <- exp(-0.5 * (((exp.value.mz - theor.value.mz) / 0.02) ^ 2))
+MS1.rt.similarity <- exp(-0.5 * (((exp.value.rt - theor.value.rt) / 0.4) ^ 2))
+
+# Total Similarity Score
+# TS = ((MS2 Similarity + MS1 Similarity) / 2) * 100
+Uracil.Total.Similarity_AllVariables <- ((uracil.MS2cosine.sim + MS1.mz.similarity + MS1.rt.similarity) / 3) * 100
+Uracil.Total.Similarity_NoMS2 <- ((MS1.mz.similarity + MS1.rt.similarity) / 2) * 100
 
 ## On to A2 confidence
 within10duplicate <- function(df, column) {
   if (column > 1)
   df2 <- df %>% 
-    slice(which.min(abs(RT.seconds.Unknowns - RT.seconds.Standards)))
+    slice(which.min(abs(RT.seconds_Unknowns - Rt.seconds_Standards)))
   else df
 }
 
 A2Confidence <- MyFuzzyJoin %>% # mz and 10 RT
-  filter(!Standards.Compound.Name %in% A1Confidence$Standards.Compound.Name,
+  filter(!Compound_Standards %in% A1Confidence$Compound_Standards,
          !KRH.Identification %in% A1Confidence$KRH.Identification) %>%
-  filter(z.Unknowns == z.Standards,
-         Column.Unknowns == Column.Standards) %>%
-  filter(!RT.seconds.Standards < (RT.seconds.Unknowns - 10) & !RT.seconds.Standards > (RT.seconds.Unknowns + 10)) %>% ## 10 will change to "cutoff 2"
-  filter(Unknown.Compound != "Compound_135") %>%
+  filter(z_Unknowns == z_Standards,
+         Column_Unknowns == Column_Standards) %>%
+  filter(!Rt.seconds_Standards < (RT.seconds_Unknowns - 10) & !Rt.seconds_Standards > (RT.seconds_Unknowns + 10)) %>% ## 10 will change to "cutoff #2"
   group_by(Unknown.Compound) %>%
   add_tally() %>%
   within10duplicate(column = "n")
   
 
 A3Confidence <- MyFuzzyJoin %>% # mz and closest RT
-  filter(!Standards.Compound.Name %in% A1Confidence$Standards.Compound.Name,
+  filter(!Compound_Standards %in% A1Confidence$Compound_Standards,
          !KRH.Identification %in% A1Confidence$KRH.Identification) %>%
-  filter(!Standards.Compound.Name %in% A2Confidence$Standards.Compound.Name,
+  filter(!Compound_Standards %in% A2Confidence$Compound_Standards,
          !KRH.Identification %in% A2Confidence$KRH.Identification) %>%
-  filter(z.Unknowns == z.Standards,
-         Column.Unknowns == Column.Standards) %>%
+  filter(z_Unknowns == z_Standards,
+         Column_Unknowns == Column_Standards) %>%
   group_by(KRH.Identification) %>%
-  slice(which.min(abs(RT.seconds.Unknowns - RT.seconds.Standards)))
+  slice(which.min(abs(RT.seconds_Unknowns - Rt.seconds_Standards)))
 
 everything.else <- MyFuzzyJoin %>%
   filter(!Standards.Compound.Name %in% A1Confidence$Standards.Compound.Name,

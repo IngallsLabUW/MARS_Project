@@ -1,11 +1,71 @@
+MakeScantable <- function(scan) {
+  # Create a filtered MS2 scantable from a concatenated scanlist of MS2s.
+  #
+  # Args
+  #   scan: Single observation from a dataframe containing MS2 mz and intensity 
+  #         spectra, separated by semicolons (;).
+  #
+  # Returns
+  #   scantable: Tiny dataframe, containing columns of mz and intensity. 
+  #              Intensity is scaled to 100 and filtered to drop all intensity
+  #              values below 0.5.
+  #
+  scantable <- read.table(text = as.character(scan),
+                          col.names = c("mz", "intensity"), fill = TRUE) %>%
+    mutate(mz = as.numeric(mz %>% str_replace(",", "")),
+           intensity = as.numeric(intensity %>% str_replace(";", "")),
+           intensity = round(intensity/max(intensity)*100, digits = 1)) %>%
+    filter(intensity > 0.5) %>%
+    arrange(desc(intensity))
+  
+  return(scantable)
+}
 
 
+MS2CosineSimilarity <- function(scan1, scan2) {
+  # Finds the weighted cosine similarity between two sets of MS2 spectra.
+  #
+  # Args
+  #   scan1 & scan2: Tiny dataframes of MS2. First column is mz, second column is intensity.
+  #                  These are outputs of the MakeScantable() function.
+  #
+  # Returns
+  #   cosine.similarity: A weighted similarity score between 0 and 1, indicating the cosine
+  #                      relationship of the two vectors.
+  #   
+  mz.tolerance <- 0.02
+  
+  weight1 <- (scan1[, 1] ^ 2) * sqrt(scan1[, 2])
+  weight2 <- (scan2[, 1] ^ 2) * sqrt(scan2[, 2])
+  
+  diff.matrix <- sapply(scan1[, 1], function(x) scan2[, 1] - x) 
+  same.index <- which(abs(diff.matrix) < mz.tolerance, arr.ind = TRUE)
+  cosine.similarity <- sum(weight1[same.index[, 2]] * weight2[same.index[, 1]]) / 
+    (sqrt(sum(weight2 ^ 2)) * sqrt(sum(weight1 ^ 2)))
+  
+  return(cosine.similarity)
+}
 
 
-
-
-
-
+# I'd look at MSMScosine_1_df to see how you can feed in a df of mass1, mass2, scan1 (in my format), scan2 and get an output of df$cosine.
+MSMScosine1_df <- function(df) {
+  scan1 <- scantable(df["scan1"])
+  scan2 <- scantable(df["scan2"])
+  mass1 <- df["mass1"]
+  mass2 <- df["mass2"]
+  
+  mztolerance<-0.02
+  
+  w1<-(scan1[,1]^2)*sqrt(scan1[,2])
+  w2<-(scan2[,1]^2)*sqrt(scan2[,2])
+  
+  diffmatrix <- sapply(scan1[, 1], function(x) scan2[, 1] - x)
+  sameindex <- which(abs(diffmatrix)<mztolerance,arr.ind=T)
+  
+  similarity<-sum(w1[sameindex[,2]]*w2[sameindex[,1]])/(sqrt(sum(w2^2))*sqrt(sum(w1^2)))
+  
+  return(similarity)
+}
 
 
 
