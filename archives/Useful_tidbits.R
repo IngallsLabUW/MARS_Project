@@ -17,8 +17,6 @@ scantable_Standards <- lapply(tosplit, function(df){
 })
 
 
-
-
 ## Confidence Level 1 MS2 matching
 Uracil <- MyFuzzyJoin %>%
   filter(Compound_Standards == "Uracil") %>%
@@ -40,3 +38,10 @@ uracil.MS2cosine.sim <- MS2CosineSimilarity(scan1 = Uracil.Experimental, scan2 =
 # TS = ((MS2 Similarity + MS1 Similarity) / 2) * 100
 Uracil.Total.Similarity_AllVariables <- ((uracil.MS2cosine.sim + MS1.mz.similarity + MS1.rt.similarity) / 3) * 100
 Uracil.Total.Similarity_NoMS2 <- ((MS1.mz.similarity + MS1.rt.similarity) / 2) * 100
+
+within10duplicate <- function(df, column) {
+  if (column > 1)
+    df2 <- df %>% 
+      slice(which.min(abs(RT.seconds_Unknowns - RT.seconds_Standards)))
+  else df
+}

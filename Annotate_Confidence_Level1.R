@@ -1,8 +1,11 @@
 library(fuzzyjoin)
 library(tidyverse)
+options(scipen = 999)
+options(digits = 6)
 
 source("Functions.R")
 
+# TODO: see where KRH and MARS identification differ
 
 # Experimental values
 Experimental.Values <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>%
@@ -59,55 +62,119 @@ MyFuzzyJoin <- Unknowns %>%
          Column_Unknowns, Column_Standards, z_Unknowns, z_Standards, MS2_Unknowns, MS2_Standards) 
 
 ## Confidence Level A1 ----------------------------------------
-A1Confidence <- MyFuzzyJoin %>% # mz and 0.02 RT
+A1Confidence_MS2s <- MyFuzzyJoin %>% # mz and 0.02 RT, 0.02 will change to "cutoff 1" or something
   filter(z_Unknowns == z_Standards,
          Column_Unknowns == Column_Standards) %>%
   group_by(Unknown.Compound) %>%
   filter(!RT.seconds_Standards < (RT.seconds_Unknowns - 0.02) &
-           !RT.seconds_Standards > (RT.seconds_Unknowns + 0.02)) %>% ## 0.02 will change to "cutoff 1" or something
+           !RT.seconds_Standards > (RT.seconds_Unknowns + 0.02)) %>% 
   ungroup() %>%
-  mutate(mz_Similarity = exp(-0.5 * ((mz_Unknowns - mz_Standards) / 0.02)),
-         RT_Similarity = exp(-0.5 * ((RT.seconds_Unknowns - RT.seconds_Standards) / 0.04))) %>% # Check cutoff and similarity of 1 always?
+  mutate(mz_Similarity = exp(-0.5 * (((mz_Unknowns - mz_Standards) / 0.02) ^ 2)),
+         RT_Similarity = exp(-0.5 * (((RT.seconds_Unknowns - RT.seconds_Standards) / 0.04) ^ 2))) %>% # Check cutoff and similarity of 1 always?
+  filter_at(vars(MS2_Unknowns, MS2_Standards), all_vars(!is.na(.))) %>% 
+  rowwise() %>% 
+  mutate(MS2cosinesim = MS2CosineSimilarity(MakeScantable(MS2_Unknowns), MakeScantable(MS2_Standards))) %>%
+  mutate(Total.Similarity.Score = ((MS2cosinesim + mz_Similarity + RT_Similarity) / 3) * 100)
+
+A1Confidence <- MyFuzzyJoin %>% 
+  filter(!Unknown.Compound %in% A1Confidence_MS2s$Unknown.Compound) %>%     
+  filter(z_Unknowns == z_Standards,
+         Column_Unknowns == Column_Standards) %>%
+  group_by(Unknown.Compound) %>%
+  filter(!RT.seconds_Standards < (RT.seconds_Unknowns - 0.02) &
+           !RT.seconds_Standards > (RT.seconds_Unknowns + 0.02)) %>% 
+  ungroup() %>%
+  mutate(mz_Similarity = exp(-0.5 * (((mz_Unknowns - mz_Standards) / 0.02) ^ 2)),
+         RT_Similarity = exp(-0.5 * (((RT.seconds_Unknowns - RT.seconds_Standards) / 0.04) ^ 2))) %>% 
+  rowwise() %>% 
+  mutate(Total.Similarity.Score = ((mz_Similarity + RT_Similarity) / 2) * 100) ### See if this works
+
+
+## Confidence Level A2 ---------------------------------------- # Having issues with a bajillion zeroes in RT similarity
+A2Confidence_MS2s <- MyFuzzyJoin %>% # mz and 10 RT
+  filter(!Unknown.Compound %in% unique(A1Confidence_MS2s$Unknown.Compound),
+         !Unknown.Compound %in% unique(A1Confidence$Unknown.Compound)) %>%
+  filter(z_Unknowns == z_Standards,
+         Column_Unknowns == Column_Standards) %>%
+  filter(!RT.seconds_Standards < (RT.seconds_Unknowns - 10) &
+           !RT.seconds_Standards > (RT.seconds_Unknowns + 10)) %>%
+  ungroup() %>%
+  mutate(mz_Similarity = exp(-0.5 * (((mz_Unknowns - mz_Standards) / 0.02) ^ 2)),
+         RT_Similarity = exp(-0.5 * (((RT.seconds_Unknowns - RT.seconds_Standards) / 0.04) ^ 2))) %>% 
   filter_at(vars(MS2_Unknowns, MS2_Standards),all_vars(!is.na(.))) %>%
   rowwise() %>% 
   mutate(MS2cosinesim = MS2CosineSimilarity(MakeScantable(MS2_Unknowns), MakeScantable(MS2_Standards))) %>%
   mutate(Total.Similarity.Score = ((MS2cosinesim + mz_Similarity + RT_Similarity) / 3) * 100)
 
+A2Confidence <- MyFuzzyJoin %>% 
+  filter(!Unknown.Compound %in% unique(A1Confidence_MS2s$Unknown.Compound),
+         !Unknown.Compound %in% unique(A1Confidence$Unknown.Compound),
+         !Unknown.Compound %in% unique(A2Confidence_MS2s$Unknown.Compound)) %>%
+  filter(z_Unknowns == z_Standards,
+         Column_Unknowns == Column_Standards) %>%
+  filter(!RT.seconds_Standards < (RT.seconds_Unknowns - 10) &
+           !RT.seconds_Standards > (RT.seconds_Unknowns + 10)) %>%
+  ungroup() %>%
+  mutate(mz_Similarity = exp(-0.5 * (((mz_Unknowns - mz_Standards) / 0.02) ^ 2)),
+         RT_Similarity = exp(-0.5 * (((RT.seconds_Unknowns - RT.seconds_Standards) / 0.04) ^ 2))) %>% 
+  rowwise() %>% 
+  mutate(Total.Similarity.Score = ((mz_Similarity + RT_Similarity) / 2) * 100)
 
-## On to A2 confidence
+## Confidence Level A3 ----------------------------------------
+
 within10duplicate <- function(df, column) {
-  if (column > 1)
-  df2 <- df %>% 
-    slice(which.min(abs(RT.seconds_Unknowns - Rt.seconds_Standards)))
+  if (column > 8) # replace with "more than one unique match" rather than a number
+    # Also "if" statement is probably unnecessary
+    df2 <- df %>%
+      mutate(RT.diff = abs(RT.seconds_Unknowns - RT.seconds_Standards)) %>%
+      group_by(Unknown.Compound) %>%
+      mutate(Closest.Match = min(RT.diff)) %>%
+      mutate(Closest.Match2 = ifelse(Closest.Match == RT.diff, TRUE, FALSE))
   else df
 }
 
-A2Confidence <- MyFuzzyJoin %>% # mz and 10 RT
-  filter(!Compound_Standards %in% A1Confidence$Compound_Standards,
-         !KRH.Identification %in% A1Confidence$KRH.Identification) %>%
+A3Confidence_MS2s <- MyFuzzyJoin %>% # mz and 10 RT
+  filter(!Unknown.Compound %in% unique(A1Confidence_MS2s$Unknown.Compound),
+         !Unknown.Compound %in% unique(A1Confidence$Unknown.Compound),
+         !Unknown.Compound %in% unique(A2Confidence_MS2s$Unknown.Compound),
+         !Unknown.Compound %in% unique(A2Confidence$Unknown.Compound)) %>%
   filter(z_Unknowns == z_Standards,
          Column_Unknowns == Column_Standards) %>%
-  filter(!Rt.seconds_Standards < (RT.seconds_Unknowns - 10) & !Rt.seconds_Standards > (RT.seconds_Unknowns + 10)) %>% ## 10 will change to "cutoff #2"
   group_by(Unknown.Compound) %>%
   add_tally() %>%
-  within10duplicate(column = "n")
-  
+  within10duplicate(column = "n") %>%
+  ungroup() %>%
+  mutate(mz_Similarity = exp(-0.5 * (((mz_Unknowns - mz_Standards) / 0.02) ^ 2)),
+         RT_Similarity = exp(-0.5 * (((RT.seconds_Unknowns - RT.seconds_Standards) / 0.04) ^ 2))) %>% # Why all the 0s?
+  filter_at(vars(MS2_Unknowns, MS2_Standards),all_vars(!is.na(.))) %>%
+  rowwise() %>% 
+  mutate(MS2cosinesim = MS2CosineSimilarity(MakeScantable(MS2_Unknowns), MakeScantable(MS2_Standards))) %>%
+  mutate(Total.Similarity.Score = ((MS2cosinesim + mz_Similarity + RT_Similarity) / 3) * 100)
 
-A3Confidence <- MyFuzzyJoin %>% # mz and closest RT
-  filter(!Compound_Standards %in% A1Confidence$Compound_Standards,
-         !KRH.Identification %in% A1Confidence$KRH.Identification) %>%
-  filter(!Compound_Standards %in% A2Confidence$Compound_Standards,
-         !KRH.Identification %in% A2Confidence$KRH.Identification) %>%
+A3Confidence <- MyFuzzyJoin %>% # mz and 10 RT
+  filter(!Unknown.Compound %in% unique(A1Confidence_MS2s$Unknown.Compound),
+         !Unknown.Compound %in% unique(A1Confidence$Unknown.Compound),
+         !Unknown.Compound %in% unique(A2Confidence_MS2s$Unknown.Compound),
+         !Unknown.Compound %in% unique(A2Confidence$Unknown.Compound),
+         !Unknown.Compound %in% unique(A3Confidence_MS2s$Unknown.Compound)) %>%
   filter(z_Unknowns == z_Standards,
          Column_Unknowns == Column_Standards) %>%
-  group_by(KRH.Identification) %>%
-  slice(which.min(abs(RT.seconds_Unknowns - Rt.seconds_Standards)))
+  group_by(Unknown.Compound) %>%
+  add_tally() %>%
+  within10duplicate(column = "n") %>%
+  ungroup() %>%
+  mutate(mz_Similarity = exp(-0.5 * (((mz_Unknowns - mz_Standards) / 0.02) ^ 2)),
+         RT_Similarity = exp(-0.5 * (((RT.seconds_Unknowns - RT.seconds_Standards) / 0.04) ^ 2))) %>% # Why all the 0s?
+  rowwise() %>% 
+  mutate(Total.Similarity.Score = ((mz_Similarity + RT_Similarity) / 2) * 100)
+
 
 everything.else <- MyFuzzyJoin %>%
-  filter(!Standards.Compound.Name %in% A1Confidence$Standards.Compound.Name,
-         !KRH.Identification %in% A1Confidence$KRH.Identification) %>%
-  filter(!Standards.Compound.Name %in% A2Confidence$Standards.Compound.Name,
-         !KRH.Identification %in% A2Confidence$KRH.Identification) %>%
-  filter(!Standards.Compound.Name %in% A3Confidence$Standards.Compound.Name,
-         !KRH.Identification %in% A3Confidence$KRH.Identification)
-  
+  filter(!Unknown.Compound %in% unique(A1Confidence_MS2s$Unknown.Compound),
+         !Unknown.Compound %in% unique(A1Confidence$Unknown.Compound),
+         !Unknown.Compound %in% unique(A2Confidence_MS2s$Unknown.Compound),
+         !Unknown.Compound %in% unique(A2Confidence$Unknown.Compound),
+         !Unknown.Compound %in% unique(A3Confidence_MS2s$Unknown.Compound),
+         !Unknown.Compound %in% unique(A3Confidence$Unknown.Compound))
+
+# At this point, add a column to say where it was identified and to what level of satisfaction.

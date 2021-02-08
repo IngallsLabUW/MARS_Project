@@ -9,8 +9,7 @@ output:
 
 ### MARS Project Log
 
-- Retention times on the MS2 sheet and the Ingalls standards sheet have some variability. Should I incorporate the collision energy into our ingalls standards, or be using that as a parameter on the experimental data (if it exists)? 
-- Total Similarity Score: include individual similarities in output? Example: Uracil as a 1:1 similarity on everything except MS2, which has a relatively poor similarity. That brings it down to .80 rather than a 1. These details can be an output of a potentially relational table? Is it worth filtering for collision energy (which MoNA has)?
+TSS without MS2 data? Ok to use the [((ms1sim + rtsim) / 2) * 100]?
 
 This is an ongoing log: a place for build notes and questions.
 *This is not to be confused with the Design Doc on the Shared Google Drive; that is for overall design direction and team suggestions. It is also not a README, which will be written closer to project completion.*
@@ -43,6 +42,7 @@ KEGG: in progress
 #### Ongoing issues
 Issues that will need to be fixed
 
+- Sort within A1 Confidence, according to TSS?
 - Incorporate existing KRH code to easily update the standards MS2 data.
   + This step will require cleaning, including but not limited to no intensities below 1 (throw out all those tiny fragment spectra), scale intensity so the biggest value is 100, and then order by descending intensity.
 - Decide on order of matching parameters: column, z, mz, rt, ms2? 
