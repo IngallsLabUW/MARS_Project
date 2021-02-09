@@ -128,8 +128,8 @@ within10duplicate <- function(df, column) {
     df2 <- df %>%
       mutate(RT.diff = abs(RT.seconds_Unknowns - RT.seconds_Standards)) %>%
       group_by(Unknown.Compound) %>%
-      mutate(Closest.Match = min(RT.diff)) %>%
-      mutate(Closest.Match2 = ifelse(Closest.Match == RT.diff, TRUE, FALSE))
+      mutate(Closest.rt.Match = min(RT.diff)) %>%
+      mutate(Closest.rt.Match2 = ifelse(Closest.rt.Match == RT.diff, TRUE, FALSE))
   else df
 }
 
@@ -176,5 +176,9 @@ everything.else <- MyFuzzyJoin %>%
          !Unknown.Compound %in% unique(A2Confidence$Unknown.Compound),
          !Unknown.Compound %in% unique(A3Confidence_MS2s$Unknown.Compound),
          !Unknown.Compound %in% unique(A3Confidence$Unknown.Compound))
+write.csv(everything.else, "data_underway/Filtered_For_CL1.csv", row.names = FALSE)
 
 # At this point, add a column to say where it was identified and to what level of satisfaction.
+testIDCheck <- rbind(A1Confidence_MS2s, A2Confidence_MS2s) %>% 
+  select(Unknown.Compound, KRH.Identification, Compound_Standards) %>% 
+  rbind(A3Confidence_MS2s %>% select(Unknown.Compound, KRH.Identification, Compound_Standards))

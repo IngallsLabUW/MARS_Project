@@ -14,33 +14,33 @@ MoNA.MetaData <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_MetaData.c
 MoNA.CmpInfo <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_CmpInfo.csv")
 
 # Experimental spectra from lab 
-Experimental.Spectra <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>%
-rename(MF.Fraction = MassFeature_Column) %>%
-  select(MF.Fraction, mz, MS2) %>%
-  as.data.frame()
+Experimental.Spectra <- read.csv("data_underway/Filtered_For_CL1.csv") 
 
 # Reassign variables from Experimental.Spectra
-mz <- as.numeric(unlist(Experimental.Spectra["mz"])) 
-MS2 <- as.character(Experimental.Spectra["MS2"]) 
-MF.Fraction <- as.data.frame(Experimental.Spectra["MF.Fraction"]) 
+mz <- as.numeric(unlist(Experimental.Spectra["mz_Unknowns"])) 
+MS2 <- as.character(Experimental.Spectra["MS2_Unknowns"]) 
+MF.Fraction <- as.data.frame(Experimental.Spectra["Unknown.Compound"]) 
 
-Experimental.Spectra.ForJoin <- Experimental.Spectra %>% 
-  rename(MH_mass = mz) %>%
-  mutate(Has.MS2 = ifelse(is.na(MS2), FALSE, TRUE)) %>%
+MS2.Test <- Experimental.Spectra %>% 
+  rename(MH_mass = mz_Unknowns) %>%
+  mutate(Has.MS2 = ifelse(is.na(MS2_Unknowns), FALSE, TRUE))
+
+Experimental.Spectra.ForJoin <- MS2.Test %>%
   filter(Has.MS2 == TRUE) %>% # Matching only on MS2 cosine similarity
+  select(-Has.MS2)
+
+Experimental.Spectra.NoMS2 <- MS2.Test %>%
+  filter(Has.MS2 == FALSE) %>%
   select(-Has.MS2)
 
 # Subtract hydrogen for reference database
 MoNA.Spectra.MHMass <- MoNA.Spectra %>%
   mutate(MH_mass = M_mass - 1.0072766) %>%
-  select(ID, Names, spectrum_KRHform_filtered, MH_mass) 
-MoNA.Spectra.MHMass[MoNA.Spectra.MHMass==""] <- NA
-MoNA.Spectra.MHMass <- MoNA.Spectra.MHMass %>%
+  select(ID, Names, spectrum_KRHform_filtered, MH_mass) %>%
   drop_na()
 
 numCores <- detectCores()
 numCores
-
 
 system.time(
   outputdf_parallel <- mclapply(MoNA.Spectra.MHMass["MH_mass"], IsolateMoNACandidates, mc.cores = numCores)

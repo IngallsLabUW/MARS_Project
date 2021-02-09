@@ -10,6 +10,15 @@ output:
 ### MARS Project Log
 
 TSS without MS2 data? Ok to use the [((ms1sim + rtsim) / 2) * 100]?
+Sort within confidence levels according to MS2 match?
+Order of parameter matching for Confidence level 1. mz, then z & column, then rt, then ms2.
+Fragment matching: % of library sample found in fragments. 
+  Example, experimental spectra has *110.97466, 100;* 110.03485, 39.1; *58.02862, 33.5;* 68.01299, 26.6; 111.01888, 20.6.
+  Library spectra has               *110.97466, 100;* 109.00000, 40.1; *58.02862, 33.5;* 70.33989, 26.6; 121.04950, 15.0.
+  If the above two lines were identical, the fragment match would be 100%. In this situation, the fragment match would be 40% or 0.4.
+Having some RT similarity calculation problems. Answers tend to be 0, nearly 0, or infinity.
+
+---
 
 This is an ongoing log: a place for build notes and questions.
 *This is not to be confused with the Design Doc on the Shared Google Drive; that is for overall design direction and team suggestions. It is also not a README, which will be written closer to project completion.*
@@ -42,9 +51,7 @@ KEGG: in progress
 #### Ongoing issues
 Issues that will need to be fixed
 
-- Sort within A1 Confidence, according to TSS?
-- Incorporate existing KRH code to easily update the standards MS2 data.
-  + This step will require cleaning, including but not limited to no intensities below 1 (throw out all those tiny fragment spectra), scale intensity so the biggest value is 100, and then order by descending intensity.
+- Incorporate existing KRH code to easily update the standards MS2 data (including MS2 standardization step).
 - Decide on order of matching parameters: column, z, mz, rt, ms2? 
 - Set up flexible equation for Total.Similarity score.
 - The dataframes to be annotated are from a variety of sources (xcms, MSDIAL), and are presented in a variety of formats and curation levels. Input will need to be standardized.

@@ -21,7 +21,6 @@ MakeScantable <- function(scan) {
   return(scantable)
 }
 
-
 MS2CosineSimilarity <- function(scan1, scan2) {
   # Finds the weighted cosine similarity between two sets of MS2 spectra.
   #
@@ -47,37 +46,25 @@ MS2CosineSimilarity <- function(scan1, scan2) {
 }
 
 
-# I'd look at MSMScosine_1_df to see how you can feed in a df of mass1, mass2, scan1 (in my format), scan2 and get an output of df$cosine.
-MSMScosine1_df <- function(df) {
-  scan1 <- scantable(df["scan1"])
-  scan2 <- scantable(df["scan2"])
-  mass1 <- df["mass1"]
-  mass2 <- df["mass2"]
-  
-  mztolerance<-0.02
-  
-  w1<-(scan1[,1]^2)*sqrt(scan1[,2])
-  w2<-(scan2[,1]^2)*sqrt(scan2[,2])
-  
-  diffmatrix <- sapply(scan1[, 1], function(x) scan2[, 1] - x)
-  sameindex <- which(abs(diffmatrix)<mztolerance,arr.ind=T)
-  
-  similarity<-sum(w1[sameindex[,2]]*w2[sameindex[,1]])/(sqrt(sum(w2^2))*sqrt(sum(w1^2)))
-  
-  return(similarity)
-}
-
-MakeCandidates <- function(MoNA.Mass) {
-  Candidates <- MoNA.Spectra.MHMass %>% 
+IsolateMoNACandidates <- function(MoNA.Mass) {
+  # Create a dataframe of potential compound matches from the downloaded MoNA database.
+  #
+  # Args
+  #   MoNA.Mass: Individual dataframe value of mass, minus hydrogen, 
+  #              taken from the MoNA Spectra relational csvs. 
+  #
+  # Returns
+  #   final.candidates: Dataframe of potential matches for experimental features.
+  potential.candidates <- MoNA.Spectra.MHMass %>% 
     filter(MH_mass > MoNA.Mass - 0.020,  
            MH_mass < MoNA.Mass + 0.020) %>% 
     difference_inner_join(Experimental.Spectra.ForJoin, by = "MH_mass", max_dist = 0.02) %>% 
     mutate(scan1 = spectrum_KRHform_filtered, # scan1 is MS2 from MoNA
-           scan2 = MS2, # scan2 is MS2 from the experimental data
-           mass1 = MH_mass.x, # mass1 is the primary mass from MoNA
-           mass2 = MH_mass.y) # mass2 is the primary mass from experimental data
+           scan2 = MS2,                       # scan2 is MS2 from the experimental data
+           mass1 = MH_mass.x,                 # mass1 is the primary mass from MoNA
+           mass2 = MH_mass.y)                 # mass2 is the primary mass from experimental data
   
-  if (length(Candidates$ID) == 0) {
+  if (length(potential.candidates$ID) == 0) {
     print("There are no potential candidates.")
     No.Match.Return <- MF.Fraction %>%
       mutate(MassBankMatch = NA,
@@ -90,26 +77,25 @@ MakeCandidates <- function(MoNA.Mass) {
   # Add cosine similarity scores
   print("Making potential candidates")
   
-  Candidates$Cosine1 <- apply(Candidates, 1, FUN=function(x) MSMScosine1_df(x)) 
+  potential.candidates$Cosine1 <- apply(potential.candidates, 1, FUN=function(x) MakeMS2CosineDataframe(x)) 
   
-  Candidates.Filtered.Cosine <- Candidates %>%
+  Candidates.Filtered.Cosine <- potential.candidates %>%
     filter(Cosine1 > Cosine.Score.Cutoff) %>%
     arrange(desc(Cosine1))
   
-  Final.Candidates <- Candidates.Filtered.Cosine %>%
+  final.candidates <- Candidates.Filtered.Cosine %>%
     mutate(MassBankMatch = paste(Names, ID, sep = " ID:"),
            MassBankppm = abs(mass1 - mass2) / mass2 * 10^6,
            MassBankCosine1 = Cosine1) %>%
     unique() %>%
-    filter(MassBankppm < MassBank.ppm.Cutoff) #%>% 
-  #select(MF.Fraction, MassBankMatch:MassBankCosine1)
+    filter(MassBankppm < MassBank.ppm.Cutoff) 
   
-  return(Final.Candidates)
+  return(final.candidates)
 }
 
-MSMScosine1_df <- function(df) {
-  scan1 <- scantable(df["scan1"])
-  scan2 <- scantable(df["scan2"])
+MakeMS2CosineDataframe <- function(df) {
+  scan1 <- MakeScantable(df["scan1"])
+  scan2 <- MakeScantable(df["scan2"])
   mass1 <- df["mass1"]
   mass2 <- df["mass2"]
   print("scan1")
@@ -117,32 +103,21 @@ MSMScosine1_df <- function(df) {
   print("scan2")
   print(scan2)
   
-  mztolerance<-0.02
+  mz.tolerance<-0.02
   
-  w1<-(scan1[,1]^2)*sqrt(scan1[,2])
-  w2<-(scan2[,1]^2)*sqrt(scan2[,2])
+  weight1 <- (scan1[, 1] ^ 2) * sqrt(scan1[, 2])
+  weight2 <- (scan2[, 1] ^ 2) * sqrt(scan2[, 2])
   
-  diffmatrix <- sapply(scan1[, 1], function(x) scan2[, 1] - x)
-  print("diffmatrix")
-  print(diffmatrix)
-  sameindex <- which(abs(diffmatrix)<mztolerance,arr.ind=T)
+  difference.matrix <- sapply(scan1[, 1], function(x) scan2[, 1] - x)
+  print("Matrix of scan differences:")
+  print(difference.matrix)
+  same.index <- which(abs(difference.matrix) < mz.tolerance, arr.ind = TRUE)
   
-  similarity<-sum(w1[sameindex[,2]]*w2[sameindex[,1]])/(sqrt(sum(w2^2))*sqrt(sum(w1^2)))
+  similarity <- sum(weight1[same.index[, 2]] * weight2[same.index[, 1]]) / 
+    (sqrt(sum(weight2 ^ 2)) * sqrt(sum(weight1 ^ 2)))
   
   return(similarity)
 }
-
-scantable <- function(Scan) {
-  Try <- read.table(text=as.character(Scan),
-                    col.names = c("mz","intensity"), fill = TRUE) %>% 
-    mutate(mz = as.numeric(mz %>% str_replace(",", "")),
-           intensity = as.numeric(intensity %>% str_replace(";", ""))) %>%
-    mutate(intensity = round(intensity/max(intensity)*100, digits = 1)) %>%
-    filter(intensity > 0.5) %>%
-    arrange(desc(intensity))
-  
-  return(Try)
-}  
 
 
 # oldfunctions ------------------------------------------------------------
