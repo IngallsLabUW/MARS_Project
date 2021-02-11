@@ -103,7 +103,7 @@ MakeMS2CosineDataframe <- function(df) {
   print("scan2")
   print(scan2)
   
-  mz.tolerance<-0.02
+  mz.tolerance <- 0.02
   
   weight1 <- (scan1[, 1] ^ 2) * sqrt(scan1[, 2])
   weight2 <- (scan2[, 1] ^ 2) * sqrt(scan2[, 2])

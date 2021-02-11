@@ -15,7 +15,7 @@ MoNA.CmpInfo <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_CmpInfo.csv
 
 # Experimental spectra from lab 
 Experimental.Spectra <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>%
-rename(MF.Fraction = MassFeature_Column) %>%
+  rename(MF.Fraction = MassFeature_Column) %>%
   select(MF.Fraction, mz, MS2) %>%
   as.data.frame()
 

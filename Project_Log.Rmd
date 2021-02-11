@@ -9,15 +9,14 @@ output:
 
 ### MARS Project Log
 
-TSS without MS2 data? Ok to use the [((ms1sim + rtsim) / 2) * 100]?
-Sort within confidence levels according to MS2 match?
-Order of parameter matching for Confidence level 1. mz, then z & column, then rt, then ms2.
-Fragment matching: % of library sample found in fragments. 
-  Example, experimental spectra has *110.97466, 100;* 110.03485, 39.1; *58.02862, 33.5;* 68.01299, 26.6; 111.01888, 20.6.
-  Library spectra has               *110.97466, 100;* 109.00000, 40.1; *58.02862, 33.5;* 70.33989, 26.6; 121.04950, 15.0.
-  If the above two lines were identical, the fragment match would be 100%. In this situation, the fragment match would be 40% or 0.4.
-Having some RT similarity calculation problems. Answers tend to be 0, nearly 0, or infinity.
-
+- Sort within confidence levels according to MS2 match?
+- Order of parameter matching for Confidence level 1. mz, then z & column, then rt, then ms2.
+- Fragment matching: % of library sample found in fragments. 
+    Example, experimental spectra has *110.97466, 100;* 110.03485, 39.1; *58.02862, 33.5;* 68.01299, 26.6; 111.01888, 20.6.
+    Library spectra has               *110.97466, 100;* 109.00000, 40.1; *58.02862, 33.5;* 70.33989, 26.6; 121.04950, 15.0.
+    If the above two lines were identical, the fragment match would be 100%. In this situation, the fragment match would be 40% or 0.4.
+- Having some RT similarity calculation problems. Answers tend to be 0, nearly 0, or infinity.
+- When should common contaminants be flagged? At the beginning or post-standards ID? Is that list updatable (is there an online place, or maybe it's just from that paper)?
 ---
 
 This is an ongoing log: a place for build notes and questions.
@@ -63,17 +62,9 @@ Issues that will need to be fixed
 - Tidy and rename variables in nearly all steps.
 
 #### Other notes
-- "w/o MS2:" on identified compounds is from MSDIAL output and currently isn't matching that we should rely on.
 - Remember, you can get the score w/out MS2! The eventual full function should be able to do both.
 - Will can make an MS2 library for stds
-- Naming schemes are all different for unique mass features
 - Potential change for rt times to nano energy
-- Spectra are relative abundances.
 - For DDA high resolution, the mass spec sees a high signal. When it see that, it takes above and below that signal and isolates it in the collision chamber. In the ms2 df, the first column is the exact mass with an intensity of 100 (maximum), then second mass and intensity, etc. 
-- "From literature" ranking stats: Eventually this should be some kind of format to manually enter interesting stuff. 
 - Moving to rank 3: currently nothing exists for HMDB Poke around the website. Might be connected to MoNA. Will is going to send some stuff for PubMed, but it's a huge download that may not be worth it. Try everything else first.
-- With regards to MS2: Individual run #s at end are different collision energies
-Lots of the unknowns aren't even real peaks. Some of them might be? Hypothetically there shouldn't be anything but standards, but there is noise and junk in there.
-Alignment results first? Look at those, peak ID. Probably can get rid of unknowns in the alignment results.
-Peak ID should be used as the key to find the correct individual results. That should be the "key", and then the MSMS data is in the individual samples. New standards MS2: It's actually 12 total injections for pos and 12 for neg since we have two different standard mixes. 
 - Output should be relational, or a complete csv depending on who's looking/filtering. Wrapper in package should account for that. ie, how many matches come up and where are they from?

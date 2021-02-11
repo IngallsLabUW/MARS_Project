@@ -7,18 +7,26 @@ source("Functions.R")
 
 # TODO: see where KRH and MARS identification differ
 
+# A minimum of two independent and orthogonal data relative to an authentic compound 
+# analyzed under identical experimental conditions are proposed as necessary to validate 
+# non-novel metabolite identifications (e.g. retention time/index and mass spectrum, 
+# retention time and NMR spectrum, accurate mass and tandem MS, accurate mass and isotope pattern, 
+# full 1H and/or 13C NMR, 2-D NMR spectra). The use of literature values reported for authentic 
+# samples by other laboratories are generally believed insufficient to validate a confident and 
+# rigorous identification. The use of literature or external laboratory data result in level 2 identifications.
+
 # Experimental values
 Experimental.Values <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>%
   select(-contains("cluster"))
 
 # Lab MS2 values
-Cyano.MS2 <- read.csv("data_extra/Cyano_stds_withMS2s.csv") %>%
+Cyano.MS2 <- read.csv("data_extra/Standards_MS2/Cyano_stds_withMS2s.csv") %>%
   mutate(Column = "RP",
          z = NA)
-HILICPos.MS2 <- read.csv("data_extra/HILICPos_stds_withMS2s.csv") %>%
+HILICPos.MS2 <- read.csv("data_extra/Standards_MS2/HILICPos_stds_withMS2s.csv") %>%
   mutate(Column = "HILIC",
          z = 1)
-HILICNeg.MS2 <- read.csv("data_extra/HILICNeg_stds_withMS2s.csv") %>%
+HILICNeg.MS2 <- read.csv("data_extra/Standards_MS2/HILICNeg_stds_withMS2s.csv") %>%
   mutate(Column = "HILIC",
          z = -1)
 
@@ -45,6 +53,7 @@ Unknowns <- Experimental.Values %>% # Experimental
   mutate(Unknown.Compound = paste("Compound_", 1:nrow(Experimental.Values), sep = "")) %>%
   rename(KRH.Identification = Identification) %>%
   select(Unknown.Compound, KRH.Identification, mz, rt, Column, z, MS2) 
+write.csv(Unknowns, "data_underway/Unknowns.csv", row.names = FALSE)
 
 MyFuzzyJoin <- Unknowns %>%
   difference_left_join(Knowns, by = c("mz"), max_dist = 0.02) %>% # needs to be swapped out for variable
@@ -76,6 +85,8 @@ A1Confidence_MS2s <- MyFuzzyJoin %>% # mz and 0.02 RT, 0.02 will change to "cuto
   mutate(MS2cosinesim = MS2CosineSimilarity(MakeScantable(MS2_Unknowns), MakeScantable(MS2_Standards))) %>%
   mutate(Total.Similarity.Score = ((MS2cosinesim + mz_Similarity + RT_Similarity) / 3) * 100)
 
+# When the MS/MS spectrum is not obtained for data dependent MS/MS acquisition, 
+# the MS/MS similarity is recognized as zero and the denominator described above is decremented by 1.
 A1Confidence <- MyFuzzyJoin %>% 
   filter(!Unknown.Compound %in% A1Confidence_MS2s$Unknown.Compound) %>%     
   filter(z_Unknowns == z_Standards,
@@ -87,7 +98,7 @@ A1Confidence <- MyFuzzyJoin %>%
   mutate(mz_Similarity = exp(-0.5 * (((mz_Unknowns - mz_Standards) / 0.02) ^ 2)),
          RT_Similarity = exp(-0.5 * (((RT.seconds_Unknowns - RT.seconds_Standards) / 0.04) ^ 2))) %>% 
   rowwise() %>% 
-  mutate(Total.Similarity.Score = ((mz_Similarity + RT_Similarity) / 2) * 100) ### See if this works
+  mutate(Total.Similarity.Score = ((mz_Similarity + RT_Similarity) / 2) * 100)
 
 
 ## Confidence Level A2 ---------------------------------------- # Having issues with a bajillion zeroes in RT similarity
@@ -179,6 +190,3 @@ everything.else <- MyFuzzyJoin %>%
 write.csv(everything.else, "data_underway/Filtered_For_CL1.csv", row.names = FALSE)
 
 # At this point, add a column to say where it was identified and to what level of satisfaction.
-testIDCheck <- rbind(A1Confidence_MS2s, A2Confidence_MS2s) %>% 
-  select(Unknown.Compound, KRH.Identification, Compound_Standards) %>% 
-  rbind(A3Confidence_MS2s %>% select(Unknown.Compound, KRH.Identification, Compound_Standards))

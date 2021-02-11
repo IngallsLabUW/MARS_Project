@@ -43,11 +43,11 @@ content(resp)
 #' getMetlinMz(mz = 135.054495, ppm = 500)
 #'
 #' @export
-getMetlinMz <- function(cmpd_mz, ppm=2.5){
-  if(!is.numeric(cmpd_mz)|cmpd_mz<=0){
+getMetlinMz <- function(cmpd_mz, ppm = 2.5) {
+  if(!is.numeric(cmpd_mz) | cmpd_mz <= 0) {
     stop("Mass must be positive and numeric")
   }
-  if(!is.numeric(ppm)|ppm<=0){
+  if(!is.numeric(ppm) | ppm <= 0) {
     stop("Mass must be positive and numeric")
   }
 
@@ -245,8 +245,8 @@ getMetlinMS2 <- function(cmpd_id){ # punched in as the key
 bet_data_by_name <- getMetlinName("betaine")
 bet_data_by_mz <- getMetlinMz(118.0865-1.007276)
 bet_MSMS_data <- bet_data_by_name %>%
-  filter(cmpd_name=="Betaine") %>%
-  filter(MSMS=="experimental") %>%
+  filter(cmpd_name == "Betaine") %>%
+  filter(MSMS == "experimental") %>%
   pull(cmpd_id) %>%
   as.numeric() %>%
   getMetlinMS2()
