@@ -9,14 +9,14 @@ output:
 
 ### MARS Project Log
 
-- Sort within confidence levels according to MS2 match?
-- Order of parameter matching for Confidence level 1. mz, then z & column, then rt, then ms2.
+- In the getMetlinname function, it looks like the output of exact_mass is already accounting for the proton weight.
+
+
 - Fragment matching: % of library sample found in fragments. 
     Example, experimental spectra has *110.97466, 100;* 110.03485, 39.1; *58.02862, 33.5;* 68.01299, 26.6; 111.01888, 20.6.
     Library spectra has               *110.97466, 100;* 109.00000, 40.1; *58.02862, 33.5;* 70.33989, 26.6; 121.04950, 15.0.
     If the above two lines were identical, the fragment match would be 100%. In this situation, the fragment match would be 40% or 0.4.
 - Having some RT similarity calculation problems. Answers tend to be 0, nearly 0, or infinity.
-- When should common contaminants be flagged? At the beginning or post-standards ID? Is that list updatable (is there an online place, or maybe it's just from that paper)?
 ---
 
 This is an ongoing log: a place for build notes and questions.

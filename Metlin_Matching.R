@@ -1,6 +1,5 @@
 library(tidyverse)
 source("Functions.R")
-source("getMetlinFunctions.R")
 
 ## Some notes:
 # Start with scraping the KRH MFCluster compounds. Metlin should be lower priority than MoNA, maybe after 
@@ -10,7 +9,9 @@ source("getMetlinFunctions.R")
 # Make a baseline dataframe of results from each successive scrape for now.
 # Later we will try a larger scale scrape to see how it goes.
 
-getMetlinName <- function(name) {
+run_number <- 0
+
+getMetlinName_rmledit <- function(name) {
   metlin_data <- paste0("https://metlin.scripps.edu/advanced_search_result.php?",
                         "name=", name, "&AminoAcid=add&drug=add&toxinEPA=add&",
                         "keggIDFilter=add") %>%
@@ -37,15 +38,16 @@ getMetlinName <- function(name) {
 
   print(paste("Metlin returned", nrow(search_data), "compound(s) with name",
               name, "with",
-              length(unique(search_data$formula)), "unique formula(s):",
-              paste(search_data$formula, collapse = ", ")))
-  if(nrow(MSMS_subset)){
+              length(unique(search_data$formula)), "unique formula(s)."))
+  
+  if (nrow(MSMS_subset)) {
     print(paste("Of those,", nrow(MSMS_subset),
-                "have experimental MS/MS data:",
-                paste(as.character(MSMS_subset$cmpd_name), collapse = ", ")))
+                "have experimental MS/MS data", collapse = ", "))
   } else {
     print("None of these compounds have experimental MS/MS data")
   }
+  run_number <<- run_number + 1
+  print(paste("Run number: ", run_number))
 
   return(search_data)
 }
@@ -66,33 +68,26 @@ Experimental.Values <- read.csv("data_from_lab_members/MFCluster_Assignments_Kat
   select(-contains("cluster"))
 
 Standards.to.Scrape <- read.csv("data_extra/Ingalls_Lab_Standards_Jan11.csv", stringsAsFactors = FALSE) %>%
-  select("m.z", contains("Name"))
+  select("m.z", contains("Name")) %>%
+  slice(1:5)
 
-####
-
-argo_data_by_name <- getMetlinName("Argininosuccinate")
-argo_data_by_mz <- getMetlinMz(291.13046 - 1.007276)
-argo_MSMS_data <- argo_data_by_name %>%
-  filter(cmpd_name == "Argininosuccinic acid") %>%
-  filter(MSMS == "experimental") %>%
-  pull(cmpd_id) %>%
-  as.numeric() %>%
-  getMetlinMS2()
-
-aspartic_data_by_name <- getMetlinName("Aspartic acid")
-
-####
 
 ## Mini test run
 
-Test.Standards <- Standards.to.Scrape %>%
-  slice(1:10) 
+t2 <- lapply(unique(Standards.to.Scrape[, 3]), getMetlinName_rmledit)
+df <- bind_rows(t2, .id = "column_label")
+#write.csv(df, "data_underway/first_metlin_scrape.csv")
+####
 
-t <- getMetlinName(Test.Standards[1, 1])
-t2 <- lapply(unique(Test.Standards[, 3]), getMetlinName)
+# argo_data_by_name <- getMetlinName("Argininosuccinate")
+# argo_data_by_mz <- getMetlinMz(291.13046 - 1.007276)
+# argo_MSMS_data <- argo_data_by_name %>%
+#   filter(cmpd_name == "Argininosuccinic acid") %>%
+#   filter(MSMS == "experimental") %>%
+#   pull(cmpd_id) %>%
+#   as.numeric() %>%
+#   getMetlinMS2()
+# 
+# aspartic_data_by_name <- getMetlinName("Aspartic acid")
 
-
-for (i in Test.Standards) {
-  print(i)
-  getMetlinName(i)
-}
+####
