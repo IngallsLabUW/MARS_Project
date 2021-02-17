@@ -9,6 +9,15 @@ source("Functions.R")
 # Make a baseline dataframe of results from each successive scrape for now.
 # Later we will try a larger scale scrape to see how it goes.
 
+auth_url <- "https://metlin.scripps.edu/lib/json/user.php"
+resp <- POST(auth_url, body = list(
+  user="wkumler@uw.edu",
+  password="password",
+  action="login"
+), add_headers(referer="https://metlin.scripps.edu/landing_page.php?pgcontent=mainPage"))
+content(resp)
+
+
 run_number <- 0
 
 getMetlinName_rmledit <- function(name) {
