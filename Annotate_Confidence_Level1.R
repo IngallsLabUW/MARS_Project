@@ -5,7 +5,7 @@ options(digits = 6)
 
 source("Functions.R")
 
-# TODO: see where KRH and MARS identification differ
+
 
 # A minimum of two independent and orthogonal data relative to an authentic compound 
 # analyzed under identical experimental conditions are proposed as necessary to validate 

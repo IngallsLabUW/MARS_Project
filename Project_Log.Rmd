@@ -9,8 +9,8 @@ output:
 
 ### MARS Project Log
 
-- In the getMetlinname function, it looks like the output of exact_mass is already accounting for the proton weight.
-
+- In the getMetlinName function, it looks like the output of exact_mass is already accounting for the proton weight. So only need it for MoNA?
+- Still need to get msms for metlin up and running, but not crucial.
 
 - Fragment matching: % of library sample found in fragments. 
     Example, experimental spectra has *110.97466, 100;* 110.03485, 39.1; *58.02862, 33.5;* 68.01299, 26.6; 111.01888, 20.6.
@@ -50,6 +50,7 @@ KEGG: in progress
 #### Ongoing issues
 Issues that will need to be fixed
 
+- see where KRH and MARS identification differ
 - Incorporate existing KRH code to easily update the standards MS2 data (including MS2 standardization step).
 - Decide on order of matching parameters: column, z, mz, rt, ms2? 
 - Set up flexible equation for Total.Similarity score.
