@@ -69,3 +69,4 @@ Issues that will need to be fixed
 - For DDA high resolution, the mass spec sees a high signal. When it see that, it takes above and below that signal and isolates it in the collision chamber. In the ms2 df, the first column is the exact mass with an intensity of 100 (maximum), then second mass and intensity, etc. 
 - Moving to rank 3: currently nothing exists for HMDB Poke around the website. Might be connected to MoNA. Will is going to send some stuff for PubMed, but it's a huge download that may not be worth it. Try everything else first.
 - Output should be relational, or a complete csv depending on who's looking/filtering. Wrapper in package should account for that. ie, how many matches come up and where are they from?
+- "known" mzs and rts will be from standards sheet. maybe later can factor in the ms2 info, but mzs are very similar and rts will require CE consideration.

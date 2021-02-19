@@ -34,6 +34,11 @@ Uracil.Experimental <- Uracil %>%
 
 uracil.MS2cosine.sim <- MS2CosineSimilarity(scan1 = Uracil.Experimental, scan2 = Uracil.Standards)
 
+#group_by(compound_known) %>%
+# filter(!rt_seconds_known < (rt_seconds_unknown - rt.flexibility) & 
+#          !rt_seconds_known > (rt_seconds_unknown + rt.flexibility)) %>% 
+#ungroup() %>%
+
 # Total Similarity Score
 # TS = ((MS2 Similarity + MS1 Similarity) / 2) * 100
 Uracil.Total.Similarity_AllVariables <- ((uracil.MS2cosine.sim + MS1.mz.similarity + MS1.rt.similarity) / 3) * 100
