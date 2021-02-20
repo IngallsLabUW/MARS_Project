@@ -77,7 +77,7 @@ IsolateMoNACandidates <- function(MoNA.Mass) {
   # Add cosine similarity scores
   print("Making potential candidates")
   
-  potential.candidates$Cosine1 <- apply(potential.candidates, 1, FUN=function(x) MakeMS2CosineDataframe(x)) 
+  potential.candidates$Cosine1 <- apply(potential.candidates, 1, FUN = function(x) MakeMS2CosineDataframe(x)) 
   
   Candidates.Filtered.Cosine <- potential.candidates %>%
     filter(Cosine1 > Cosine.Score.Cutoff) %>%

@@ -7,6 +7,7 @@ source("Functions.R")
 
 # Notes from this step
 
+# WHY ARE ROWS GETTING DROPPED IN FUZZYJOIN
 # Timestamped/SHA-marked/Groundhog standards & MS2 sheets need to be used
 # Can make a with/without MS2 total similarity score
 # Why the rt bajillion zeros?
@@ -100,8 +101,8 @@ Confidence.Level.1 <- My.Fuzzy.Join %>%
 
 mission.accomplished <- My.Fuzzy.Join %>%
   left_join(Confidence.Level.1) %>%
-  mutate(confidence.rank = ifelse(mz_similarity_score == 1 & rt_similarity_score == 1, 1, NA),
-         confidence.source = ifelse(!is.na(confidence.rank), "Ingalls_Standards", NA))
+  mutate(confidence_rank = ifelse(mz_similarity_score == 1 & rt_similarity_score == 1, 1, NA),
+         confidence_source = ifelse(!is.na(confidence.rank), "Ingalls_Standards", NA))
 
 
 
