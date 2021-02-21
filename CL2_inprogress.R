@@ -6,6 +6,7 @@ source("Functions.R")
 Cosine.Score.Cutoff <- 0.5 
 MassBank.ppm.Cutoff <- 5
 
+
 # Notes from this step
 # Would like to extract the other online database keys and work that in to check matches there.
 # Last Auto-Curation, looks useful but need to figure out what it is/what it means exactly. How does this relate to "date"?
@@ -16,15 +17,16 @@ MassBank.ppm.Cutoff <- 5
 
 # Four relational spreadsheets from the MoNA download
 MoNA.Spectra.Neg <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_Spectra.csv")
-MoNA.Names.Neg <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_Names.csv")
+MoNA.Names.Neg <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_Names.csv") %>%
+  select(SpectraID, name)
 MoNA.MetaData.Neg <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_MetaData.csv")
 MoNA.CmpInfo.Neg <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_CmpInfo.csv")
 
-relevant <- c("exact mass", "retention time", "precursor m/z", "collision energy")
+relevant.parameters <- c("exact mass", "retention time", "precursor m/z", "collision energy")
 
 MoNA.Known <- MoNA.MetaData.Neg %>%
   select(name, value, SpectraID) %>%
-  filter(name %in% relevant) %>%
+  filter(name %in% relevant.parameters) %>%
   mutate(name = str_replace(name, " ", "_")) %>%
   pivot_wider(., names_from = "name", values_from = "value") %>%
   filter(str_detect(retention_time, "min"),
@@ -35,7 +37,7 @@ MoNA.Known <- MoNA.MetaData.Neg %>%
   mutate(collision_energy = ifelse(!str_detect(collision_energy, "V"), NA, collision_energy))
   
 
-# For initial MoNa matching, w/out ms2
+# For initial MoNA matching, w/out ms2
 Unknowns4Mona.neg <- read.csv("data_processed/confidence_level1.csv") %>%
   select(-X) %>%
   filter(z_unknown == -1) %>%
@@ -43,11 +45,13 @@ Unknowns4Mona.neg <- read.csv("data_processed/confidence_level1.csv") %>%
 
 KnownsfromMona.neg <- MoNA.Known %>%
   rename(MH_mass = exact_mass) %>%
-  mutate(MH_mass = as.numeric(MH_mass))
-
+  mutate(MH_mass = as.numeric(MH_mass)) %>%
+  left_join(MoNA.Names.Neg, by = "SpectraID")
 
 MoNA.Fuzzy.Join <- KnownsfromMona.neg %>%
-  difference_left_join(Unknowns4Mona.neg, by = c("MH_mass"), max_dist = 0.02) 
+  difference_left_join(Unknowns4Mona.neg, by = c("MH_mass"), max_dist = 0.02) %>%
+  filter(z_known == -1) %>%
+  select(SpectraID, MH_mass.x, MH_mass.y, `precursor_m/z`, rt_seconds_known.x, name, compound_unknown, rt_seconds_known.y, confidence.rank) # FIX THIS CONFIDENCE.RANK
 
 
 # Experimental spectra from lab, Confidence Level 1

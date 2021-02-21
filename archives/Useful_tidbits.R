@@ -44,9 +44,33 @@ uracil.MS2cosine.sim <- MS2CosineSimilarity(scan1 = Uracil.Experimental, scan2 =
 Uracil.Total.Similarity_AllVariables <- ((uracil.MS2cosine.sim + MS1.mz.similarity + MS1.rt.similarity) / 3) * 100
 Uracil.Total.Similarity_NoMS2 <- ((MS1.mz.similarity + MS1.rt.similarity) / 2) * 100
 
+## Confidence Level A3 ----------------------------------------
+
 within10duplicate <- function(df, column) {
-  if (column > 1)
-    df2 <- df %>% 
-      slice(which.min(abs(RT.seconds_Unknowns - RT.seconds_Standards)))
+  if (column > 8) # replace with "more than one unique match" rather than a number
+    # Also "if" statement is probably unnecessary
+    df2 <- df %>%
+      mutate(RT.diff = abs(RT.seconds_Unknowns - RT.seconds_Standards)) %>%
+      group_by(Unknown.Compound) %>%
+      mutate(Closest.rt.Match = min(RT.diff)) %>%
+      mutate(Closest.rt.Match2 = ifelse(Closest.rt.Match == RT.diff, TRUE, FALSE))
   else df
 }
+
+A3Confidence_MS2s <- My.Fuzzy.Join %>% # mz and 10 RT
+  filter(!Unknown.Compound %in% unique(Confidence.Level.1$Unknown.Compound),
+         !Unknown.Compound %in% unique(A1Confidence$Unknown.Compound),
+         !Unknown.Compound %in% unique(A2Confidence_MS2s$Unknown.Compound),
+         !Unknown.Compound %in% unique(A2Confidence$Unknown.Compound)) %>%
+  filter(z_Unknowns == z_Standards,
+         Column_Unknowns == Column_Standards) %>%
+  group_by(Unknown.Compound) %>%
+  add_tally() %>%
+  within10duplicate(column = "n") %>%
+  ungroup() %>%
+  mutate(mz_Similarity = exp(-0.5 * (((mz_Unknowns - mz_Standards) / 0.02) ^ 2)),
+         RT_Similarity = exp(-0.5 * (((RT.seconds_Unknowns - RT.seconds_Standards) / 0.04) ^ 2))) %>% # Why all the 0s?
+  filter_at(vars(MS2_Unknowns, MS2_Standards),all_vars(!is.na(.))) %>%
+  rowwise() %>% 
+  mutate(MS2cosinesim = MS2CosineSimilarity(MakeScantable(MS2_Unknowns), MakeScantable(MS2_Standards))) %>%
+  mutate(Total.Similarity.Score = ((MS2cosinesim + mz_Similarity + RT_Similarity) / 3) * 100)

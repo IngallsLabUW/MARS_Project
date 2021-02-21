@@ -7,6 +7,7 @@ source("Functions.R")
 # Start with scraping the KRH MFCluster compounds. Metlin should be lower priority than MoNA, maybe after 
 # scraping MoNA return some stats and ask, do you want to try metlin? Then follow up with "this compound
 # wasn't found as of the mm/dd/yy scrape", etc.
+# Mz function needs to drop nas, for now I'm doing it manually
 
 # Make a baseline dataframe of results from each successive scrape for now.
 # Later we will try a larger scale scrape to see how it goes.
@@ -66,7 +67,8 @@ getMetlinName_rmledit <- function(name) {
 
 getMetlinMz_rmledit <- function(cmpd_mz, ppm = 2.5) {
   if(!is.numeric(cmpd_mz) | cmpd_mz <= 0) {
-    stop("Mass must be positive and numeric")
+    na.omit(cmpd_mz)
+    #stop("Mass must be positive and numeric")
   }
   if(!is.numeric(ppm) | ppm <= 0) {
     stop("Mass must be positive and numeric")
@@ -173,44 +175,35 @@ getMetlinMS2 <- function(cmpd_id){ # punched in as the key
 }
 #######
 
-Experimental.Values <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>%
-  separate(MassFeature_Column, into = c("MassFeature", "column"), sep = "_") %>%
-  select(-contains("cluster"), -column) %>%
-  slice(1:5)
-
 Standards.to.Scrape <- read.csv("data_extra/Ingalls_Lab_Standards_Jan11.csv", stringsAsFactors = FALSE) %>%
   select("m.z", contains("Name")) %>%
   transform(m.z = as.numeric(m.z)) %>%
   slice(1:3, 24)
 
+#Experimental.Values <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>%
+  # separate(MassFeature_Column, into = c("MassFeature", "column"), sep = "_") %>%
+  # select(-contains("cluster"), -column) %>%
 
-## Mini test run, some compounds are missing.
+Experimental.Values <- read.csv("data_processed/confidence_level1.csv") %>%
+  select(compound_unknown:compound_known, mz_unknown, mz_known, confidence_rank)
 
-test_databyname <- lapply(unique(Standards.to.Scrape[, 3]), getMetlinName_rmledit)
-test_databyname_df <- bind_rows(test_databyname, .id = "column_label")
+## Mini standards test run
+standards_databyname <- lapply(unique(Standards.to.Scrape[, 3]), getMetlinName_rmledit)
+standards_databyname_df <- bind_rows(test_databyname)
 
-test_databymz <- lapply(unique(Standards.to.Scrape[, 1]), getMetlinMz_rmledit)
-test_databymz_df <- bind_rows(test_databymz)
+standards_databymz <- lapply(unique(Standards.to.Scrape[, 1]), getMetlinMz_rmledit)
+standards_databymz_df <- bind_rows(test_databymz)
 
-
-experimental_databyname <- lapply(unique(Experimental.Values[, 1]), getMetlinName_rmledit)
+# Mini exeperimental testrun: TAKES A LONG TIME AND CURRENTLY CAN'T PARALLELLIZE IT FOR SOME REASON
+system.time(
+  experimental_databyname <- lapply(unique(Experimental.Values[, 3]), getMetlinName_rmledit)  # basically a standards scrape
+  ) # basically a standards scrape
 experimental_databyname_df <- bind_rows(experimental_databyname)
 
-experimental_databymz <- lapply(unique(Experimental.Values[, 4]), getMetlinMz_rmledit)
+exp.for.mz <- Experimental.Values %>%
+  filter(!is.na(mz_unknown))
+experimental_databymz <- lapply(unique(exp.for.mz[, 4]), getMetlinMz_rmledit)
 experimental_databymz_df <- bind_rows(experimental_databymz)
 
 #write.csv(df, "data_underway/first_metlin_scrape.csv")
-####
 
-# argo_data_by_name <- getMetlinName("Argininosuccinate")
-# argo_data_by_mz <- getMetlinMz(291.13046 - 1.007276)
-# argo_MSMS_data <- argo_data_by_name %>%
-#   filter(cmpd_name == "Argininosuccinic acid") %>%
-#   filter(MSMS == "experimental") %>%
-#   pull(cmpd_id) %>%
-#   as.numeric() %>%
-#   getMetlinMS2()
-# 
-# aspartic_data_by_name <- getMetlinName("Aspartic acid")
-
-####

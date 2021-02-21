@@ -82,16 +82,13 @@ My.Fuzzy.Join <- Knowns %>%
          column_unknown, column_known, z_unknown, z_known, MS2_unknown, MS2_known)  %>%
   arrange(compound_unknown)
 
-## Confidence Level 1 ----------------------------------------
+## Confidence Level 1 ----------------------------------------  
+# DHPS as example
 Confidence.Level.1 <- My.Fuzzy.Join %>%
   filter(z_unknown == z_known,
          column_unknown == column_known) %>%
   mutate(mz_similarity_score = exp(-0.5 * (((mz_unknown - mz_known) / mz.flexibility) ^ 2)),
          rt_similarity_score = exp(-0.5 * (((rt_seconds_unknown - rt_seconds_known) / rt.flexibility) ^ 2))) %>%
-##################
-# test <- Confidence.Level.1 %>%
-#   select(compound_unknown:rt_seconds_known, mz_similarity_score, rt_similarity_score)
-##################
   rowwise() %>%
   mutate(MS2_cosine_similarity = ifelse(is.na(MS2_unknown) | is.na(MS2_known), 
                                         NA, MS2CosineSimilarity(MakeScantable(MS2_unknown), MakeScantable(MS2_known)))) %>%
@@ -99,40 +96,23 @@ Confidence.Level.1 <- My.Fuzzy.Join %>%
                                          ((mz_similarity_score + rt_similarity_score) / 2) * 100,
                                             ((MS2_cosine_similarity + mz_similarity_score + rt_similarity_score) / 3) * 100))
 
-mission.accomplished <- My.Fuzzy.Join %>%
+# Sanitycheck: add here
+No.Fuzzy.Match <- Unknowns %>%
+  select(compound_unknown) %>%
+  filter(compound_unknown %in% setdiff(1:nrow(Unknowns), My.Fuzzy.Join$compound_unknown)) %>%
+  pull()
+CL1 <- sort(unique(Confidence.Level.1$compound_unknown))
+everything.else <- setdiff(1:nrow(Unknowns), sort(c(CL1, No.Fuzzy.Match)))
+all.unknowns <- sort(c(No.Fuzzy.Match, CL1, everything.else))
+
+everything.else.df <- Unknowns %>%
+  filter(compound_unknown %in% everything.else)
+No.Fuzzy.Match.df <- Unknowns %>%
+  filter(compound_unknown %in% No.Fuzzy.Match)
+
+Mission.Accomplished <- My.Fuzzy.Join %>%
   left_join(Confidence.Level.1) %>%
   mutate(confidence_rank = ifelse(mz_similarity_score == 1 & rt_similarity_score == 1, 1, NA),
-         confidence_source = ifelse(!is.na(confidence.rank), "Ingalls_Standards", NA))
-
-
-
-## Confidence Level A3 ----------------------------------------
-
-within10duplicate <- function(df, column) {
-  if (column > 8) # replace with "more than one unique match" rather than a number
-    # Also "if" statement is probably unnecessary
-    df2 <- df %>%
-      mutate(RT.diff = abs(RT.seconds_Unknowns - RT.seconds_Standards)) %>%
-      group_by(Unknown.Compound) %>%
-      mutate(Closest.rt.Match = min(RT.diff)) %>%
-      mutate(Closest.rt.Match2 = ifelse(Closest.rt.Match == RT.diff, TRUE, FALSE))
-  else df
-}
-
-A3Confidence_MS2s <- My.Fuzzy.Join %>% # mz and 10 RT
-  filter(!Unknown.Compound %in% unique(Confidence.Level.1$Unknown.Compound),
-         !Unknown.Compound %in% unique(A1Confidence$Unknown.Compound),
-         !Unknown.Compound %in% unique(A2Confidence_MS2s$Unknown.Compound),
-         !Unknown.Compound %in% unique(A2Confidence$Unknown.Compound)) %>%
-  filter(z_Unknowns == z_Standards,
-         Column_Unknowns == Column_Standards) %>%
-  group_by(Unknown.Compound) %>%
-  add_tally() %>%
-  within10duplicate(column = "n") %>%
-  ungroup() %>%
-  mutate(mz_Similarity = exp(-0.5 * (((mz_Unknowns - mz_Standards) / 0.02) ^ 2)),
-         RT_Similarity = exp(-0.5 * (((RT.seconds_Unknowns - RT.seconds_Standards) / 0.04) ^ 2))) %>% # Why all the 0s?
-  filter_at(vars(MS2_Unknowns, MS2_Standards),all_vars(!is.na(.))) %>%
-  rowwise() %>% 
-  mutate(MS2cosinesim = MS2CosineSimilarity(MakeScantable(MS2_Unknowns), MakeScantable(MS2_Standards))) %>%
-  mutate(Total.Similarity.Score = ((MS2cosinesim + mz_Similarity + RT_Similarity) / 3) * 100)
+         confidence_source = ifelse(!is.na(confidence_rank), "Ingalls_Standards", NA)) %>%
+  left_join(everything.else.df) %>%
+  bind_rows(No.Fuzzy.Match.df)
