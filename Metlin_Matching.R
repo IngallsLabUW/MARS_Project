@@ -3,14 +3,12 @@ library(tidyverse)
 library(xml2)
 source("Functions.R")
 
-## Some notes:
-# Start with scraping the KRH MFCluster compounds. Metlin should be lower priority than MoNA, maybe after 
-# scraping MoNA return some stats and ask, do you want to try metlin? Then follow up with "this compound
-# wasn't found as of the mm/dd/yy scrape", etc.
+## Some notes:k
+# Would love to use a closure for that run_number variable
 # Mz function needs to drop nas, for now I'm doing it manually
-
-# Make a baseline dataframe of results from each successive scrape for now.
-# Later we will try a larger scale scrape to see how it goes.
+# Once the output dataframes are settled, these scrapes will form the base of the
+# google drive metlin dataframe.
+# Need to make the scraped database for this: decide on a format and make the first one.
 
 auth_url <- "https://metlin.scripps.edu/lib/json/user.php"
 resp <- POST(auth_url, body = list(
@@ -21,40 +19,40 @@ resp <- POST(auth_url, body = list(
 content(resp)
 
 
+# Functions ---------------------------------------------------------------
 run_number <- 0
 
-getMetlinName_rmledit <- function(name) {
-  metlin_data <- paste0("https://metlin.scripps.edu/advanced_search_result.php?",
-                        "name=", name, "&AminoAcid=add&drug=add&toxinEPA=add&",
+getMetlinName_rmledit <- function(mf.name) {
+  metlin.data <- paste0("https://metlin.scripps.edu/advanced_search_result.php?",
+                        "name=", mf.name, "&AminoAcid=add&drug=add&toxinEPA=add&",
                         "keggIDFilter=add") %>%
     GET(add_headers(referer = "https://metlin.scripps.edu/advanced_search.php")) %>%
-    #stop_for_status() %>% ## ISSUE IS HERE
     content(encoding = "UTF-8") %>%
     xml_find_all(xpath = "//tbody")
 
-  search_ids <- metlin_data %>%
+  search.ids <- metlin.data %>%
     xml_find_all(xpath = "//th[@scope]/a") %>%
     xml_text()
 
-  search_data <- metlin_data %>%
+  search.data <- metlin.data %>%
     xml_find_all(xpath="//td") %>%
     xml_text() %>%
     matrix(ncol=7, byrow=T) %>%
-    cbind(search_ids, .) %>%
+    cbind(search.ids, .) %>%
     as.data.frame() %>%
     `names<-`(c("cmpd_id", "exact_mass", "cmpd_name", "formula", #### exact mass already accounts for proton?
                 "CAS", "KEGG", "MSMS", "Structure")) %>%
     select(-Structure) %>%
-    mutate(Ingalls_cmpd_name = name)
+    mutate(Ingalls_cmpd_name = mf.name) 
 
-  MSMS_subset <- subset(search_data, MSMS=="experimental")
+  MSMS.subset <- subset(search.data, MSMS == "experimental")
 
-  print(paste("Metlin returned", nrow(search_data), "compound(s) with name",
-              name, "with",
-              length(unique(search_data$formula)), "unique formula(s)."))
+  print(paste("Metlin returned", nrow(search.data), "compound(s) with name",
+              mf.name, "with",
+              length(unique(search.data$formula)), "unique formula(s)."))
   
-  if (nrow(MSMS_subset)) {
-    print(paste("Of those,", nrow(MSMS_subset),
+  if (nrow(MSMS.subset)) {
+    print(paste("Of those,", nrow(MSMS.subset),
                 "have experimental MS/MS data", collapse = ", "))
   } else {
     print("None of these compounds have experimental MS/MS data")
@@ -62,69 +60,68 @@ getMetlinName_rmledit <- function(name) {
   run_number <<- run_number + 1
   print(paste("Run number: ", run_number))
 
-  return(search_data)
+  return(search.data)
 }
 
-getMetlinMz_rmledit <- function(cmpd_mz, ppm = 2.5) {
-  if(!is.numeric(cmpd_mz) | cmpd_mz <= 0) {
-    na.omit(cmpd_mz)
-    #stop("Mass must be positive and numeric")
+getMetlinrt_rmledit <- function(rt, ppm = 2.5) {
+  if(!is.numeric(cmpd.mz) | cmpd.mz <= 0) {
+    stop("Mass must be positive and numeric")
   }
   if(!is.numeric(ppm) | ppm <= 0) {
     stop("Mass must be positive and numeric")
   }
   
   
-  mz_range <- c(cmpd_mz-cmpd_mz*ppm/1000000, cmpd_mz+cmpd_mz*ppm/1000000)
-  metlin_data <- paste0("https://metlin.scripps.edu/advanced_search_result.php?",
-                        "molid=&mass_min=", min(mz_range),
-                        "&mass_max=", max(mz_range), "&Amino",
+  mz.range <- c(cmpd.mz - cmpd.mz * ppm / 1000000, cmpd.mz + cmpd.mz * ppm / 1000000)
+  metlin.data <- paste0("https://metlin.scripps.edu/advanced_search_result.php?",
+                        "molid=&mass_min=", min(mz.range),
+                        "&mass_max=", max(mz.range), "&Amino",
                         "Acid=add&drug=add&toxinEPA=add&keggIDFilter=add") %>%
     GET() %>%
     stop_for_status() %>%
     content(encoding = "UTF-8") %>%
     xml_find_all(xpath = "//tbody")
   
-  search_ids <- metlin_data %>%
+  search.ids <- metlin.data %>%
     xml_find_all(xpath = "//th[@scope]/a") %>%
     xml_text()
   
-  search_data <- metlin_data %>%
+  search.data <- metlin.data %>%
     xml_find_all(xpath="//td") %>%
     xml_text() %>%
     matrix(ncol=7, byrow=T) %>%
-    cbind(search_ids, .) %>%
+    cbind(search.ids, .) %>%
     as.data.frame() %>%
     `names<-`(c("cmpd_id", "exact_mass", "cmpd_name", "formula",
                 "CAS", "KEGG", "MSMS", "Structure")) %>%
     select(-Structure) %>%
-    mutate(Ingalls_cmpd_mz = cmpd_mz)
+    mutate(Ingalls_cmpd.mz = cmpd.mz)
   
-  MSMS_subset <- subset(search_data, MSMS=="experimental")
+  MSMS.subset <- subset(search.data, MSMS=="experimental")
   
-  print(paste("Metlin returned", nrow(search_data), "compound(s) between",
-              min(mz_range), "and", max(mz_range), "m/z with",
-              length(levels(search_data$formula)), "unique formula(s):",
-              paste(levels(search_data$formula), collapse = ", ")))
-  if(nrow(MSMS_subset)){
-    print(paste("Of those,", nrow(MSMS_subset),
+  print(paste("Metlin returned", nrow(search.data), "compound(s) between",
+              min(mz.range), "and", max(mz.range), "m/z with",
+              length(levels(search.data$formula)), "unique formula(s):",
+              paste(levels(search.data$formula), collapse = ", ")))
+  if(nrow(MSMS.subset)){
+    print(paste("Of those,", nrow(MSMS.subset),
                 "have experimental MS/MS data:",
-                paste(as.character(MSMS_subset$cmpd_name), collapse = ", ")))
+                paste(as.character(MSMS.subset$cmpd_name), collapse = ", ")))
   } else {
     print("None of these compounds have experimental MS/MS data")
   }
   
-  return(search_data)
+  return(search.data)
 }
 
 getMetlinMS2 <- function(cmpd_id){ # punched in as the key
   if(!is.numeric(cmpd_id)|cmpd_id<=0){
     stop("Mass must be positive and numeric")
   }
-  metlin_data <- paste0("https://metlin.scripps.edu/showChart.php?molid=",
+  metlin.data <- paste0("https://metlin.scripps.edu/showChart.php?molid=",
                         cmpd_id,"&etype=experimental") %>%
     GET() %>% stop_for_status()
-  ms2_raw <- metlin_data %>%
+  ms2_raw <- metlin.data %>%
     content(encoding = "UTF-8") %>%
     xml_find_all(xpath = '/html/head/script[5]') %>%
     xml_text() %>%
@@ -173,37 +170,26 @@ getMetlinMS2 <- function(cmpd_id){ # punched in as the key
   
   return(ms2_df)
 }
-#######
 
-Standards.to.Scrape <- read.csv("data_extra/Ingalls_Lab_Standards_Jan11.csv", stringsAsFactors = FALSE) %>%
-  select("m.z", contains("Name")) %>%
-  transform(m.z = as.numeric(m.z)) %>%
-  slice(1:3, 24)
 
-#Experimental.Values <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>%
-  # separate(MassFeature_Column, into = c("MassFeature", "column"), sep = "_") %>%
-  # select(-contains("cluster"), -column) %>%
-
+# Data --------------------------------------------------------------------
 Experimental.Values <- read.csv("data_processed/confidence_level1.csv") %>%
-  select(compound_unknown:compound_known, mz_unknown, mz_known, confidence_rank)
+  select(-X) %>%
+  filter(!is.na(compound_unknown)) %>%
+  slice(1:66)
 
-## Mini standards test run
-standards_databyname <- lapply(unique(Standards.to.Scrape[, 3]), getMetlinName_rmledit)
-standards_databyname_df <- bind_rows(test_databyname)
-
-standards_databymz <- lapply(unique(Standards.to.Scrape[, 1]), getMetlinMz_rmledit)
-standards_databymz_df <- bind_rows(test_databymz)
-
-# Mini exeperimental testrun: TAKES A LONG TIME AND CURRENTLY CAN'T PARALLELLIZE IT FOR SOME REASON
+# Scrape Metlin -----------------------------------------------------------
+# Mini experimental testrun: TAKES A LONG TIME AND CURRENTLY CAN'T PARALLELLIZE IT FOR SOME REASON
 system.time(
   experimental_databyname <- lapply(unique(Experimental.Values[, 3]), getMetlinName_rmledit)  # basically a standards scrape
-  ) # basically a standards scrape
+  ) 
 experimental_databyname_df <- bind_rows(experimental_databyname)
 
-exp.for.mz <- Experimental.Values %>%
-  filter(!is.na(mz_unknown))
-experimental_databymz <- lapply(unique(exp.for.mz[, 4]), getMetlinMz_rmledit)
-experimental_databymz_df <- bind_rows(experimental_databymz)
 
+experimental_databymz <- lapply(unique(Experimental.Values[, 4]), getMetlinMz_rmledit)
+experimental_databymz_df <- bind_rows(experimental_databymz) %>% unique() %>%
+  rename(mz_unknown = Ingalls_cmpd.mz)
+
+t <- experimental_databymz_df %>% left_join(Experimental.Values, by = "mz_unknown")
 #write.csv(df, "data_underway/first_metlin_scrape.csv")
 

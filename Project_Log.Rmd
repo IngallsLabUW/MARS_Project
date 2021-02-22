@@ -16,7 +16,9 @@ output:
     Example, experimental spectra has *110.97466, 100;* 110.03485, 39.1; *58.02862, 33.5;* 68.01299, 26.6; 111.01888, 20.6.
     Library spectra has               *110.97466, 100;* 109.00000, 40.1; *58.02862, 33.5;* 70.33989, 26.6; 121.04950, 15.0.
     If the above two lines were identical, the fragment match would be 100%. In this situation, the fragment match would be 40% or 0.4.
-- Having some RT similarity calculation problems. Answers tend to be 0, nearly 0, or infinity.
+
+
+What about potential matches that are non/z non/column matched?
 ---
 
 This is an ongoing log: a place for build notes and questions.
@@ -24,8 +26,6 @@ This is an ongoing log: a place for build notes and questions.
 
 What is being worked on right now
 
-Streamlining the process for import and standards-related ID.
-1. Standard import file with feature, mz, rt, column, z, and ms2
 *Confidence Level 1*
 
 - Use [FuzzyJoin](http://varianceexplained.org/fuzzyjoin/) to match m/z, rt, column, and z for positive IDs and return a dataframe of matches. 
@@ -38,35 +38,11 @@ Streamlining the process for import and standards-related ID.
 
 - Match unknown experimental values to MoNA and Metlin dataframes (which will be updated either every quarter, or as often as necessary). 
 
-MoNA: Bare bones run complete
-Metlin: in progress
-
-- Only for mass features that have MS2 (otherwise not eligible for "level 2" confidence match.
-
 *Confidence Level 3*
-KEGG: in progress
+KEGG
 
 
-#### Ongoing issues
-Issues that will need to be fixed
+#### Notes
 
-- see where KRH and MARS identification differ
-- Incorporate existing KRH code to easily update the standards MS2 data (including MS2 standardization step).
-- Decide on order of matching parameters: column, z, mz, rt, ms2? 
-- Set up flexible equation for Total.Similarity score.
-- The dataframes to be annotated are from a variety of sources (xcms, MSDIAL), and are presented in a variety of formats and curation levels. Input will need to be standardized.
 - Need to replace old compound names with new ones!
-- For now, using given tolerance values is fine, but eventually we should be calculating it from the fuzzyjoin tolerance *clarify this later with KRH*.
-- For now, we can compare to our own spectra and use 0.02 as tolerance. Revisit later to make it into ppm space.
-- Incorporate the existing Metlin scraping structure into a database that will grow with each successive scrape.
-- Run through the KEGG matching functions. 
-- Tidy and rename variables in nearly all steps.
-
-#### Other notes
-- Remember, you can get the score w/out MS2! The eventual full function should be able to do both.
-- Will can make an MS2 library for stds
-- Potential change for rt times to nano energy
 - For DDA high resolution, the mass spec sees a high signal. When it see that, it takes above and below that signal and isolates it in the collision chamber. In the ms2 df, the first column is the exact mass with an intensity of 100 (maximum), then second mass and intensity, etc. 
-- Moving to rank 3: currently nothing exists for HMDB Poke around the website. Might be connected to MoNA. Will is going to send some stuff for PubMed, but it's a huge download that may not be worth it. Try everything else first.
-- Output should be relational, or a complete csv depending on who's looking/filtering. Wrapper in package should account for that. ie, how many matches come up and where are they from?
-- "known" mzs and rts will be from standards sheet. maybe later can factor in the ms2 info, but mzs are very similar and rts will require CE consideration.

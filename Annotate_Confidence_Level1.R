@@ -7,20 +7,19 @@ source("Functions.R")
 
 # Notes from this step
 
-# WHY ARE ROWS GETTING DROPPED IN FUZZYJOIN
 # Timestamped/SHA-marked/Groundhog standards & MS2 sheets need to be used
-# Can make a with/without MS2 total similarity score
 # Why the rt bajillion zeros?
 # Extra rows in mission.accomplished: why?
 # What about multiple matches?
+# Having some RT similarity calculation problems. Answers tend to be 0, nearly 0, or infinity.
+# Where do KRH and MARS IDs differ?
 
 mz.flexibility <- 0.02
 rt.flexibility <- 0.02 # seconds
 
-# Experimental Values -----------------------------------------------------
+# Unknown (Experimental) Values -----------------------------------------------------
 # Must be in the following format, including capitalization:
 # MassFeature (character), mz (numeric), rt (numeric), column (numeric), z (numeric), MS2 (in concatenated format, character)
-
 Experimental.Values <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>%
   separate(MassFeature_Column, into = c("MassFeature", "drop"), sep = "_") %>%
   rename(column = Column,
@@ -28,7 +27,6 @@ Experimental.Values <- read.csv("data_from_lab_members/MFCluster_Assignments_Kat
   select(MassFeature, KRH_identification, mz, rt, column, z, MS2)
 
 # Known Values -----------------------------------------------------
-
 # MS2s
 Cyano.MS2 <- read.csv("data_extra/Standards_MS2/Cyano_stds_withMS2s.csv") %>%
   mutate(column = "RP",
@@ -54,6 +52,8 @@ Standards <- read.csv("data_extra/Ingalls_Lab_Standards_Feb1.csv") %>%
          column = Column) %>%
   select(compound, mz, rt, column, z)
 
+
+# Summarize known and unknown ---------------------------------------------
 # All known variables
 Knowns <- Standards %>% 
   left_join(Standards.MS2, by = c("compound", "column", "z")) %>%
@@ -96,23 +96,31 @@ Confidence.Level.1 <- My.Fuzzy.Join %>%
                                          ((mz_similarity_score + rt_similarity_score) / 2) * 100,
                                             ((MS2_cosine_similarity + mz_similarity_score + rt_similarity_score) / 3) * 100))
 
-# Sanitycheck: add here
+
+#  Sanity check -------------------------------------------------------------
+# No fuzzy match (no mz within 0.02 daltons)
 No.Fuzzy.Match <- Unknowns %>%
   select(compound_unknown) %>%
   filter(compound_unknown %in% setdiff(1:nrow(Unknowns), My.Fuzzy.Join$compound_unknown)) %>%
   pull()
-CL1 <- sort(unique(Confidence.Level.1$compound_unknown))
-everything.else <- setdiff(1:nrow(Unknowns), sort(c(CL1, No.Fuzzy.Match)))
-all.unknowns <- sort(c(No.Fuzzy.Match, CL1, everything.else))
 
-everything.else.df <- Unknowns %>%
-  filter(compound_unknown %in% everything.else)
+# Fuzzy match, but wrong z/column
+No.CL1.Match <- setdiff(1:nrow(Unknowns), sort(c(unique(Confidence.Level.1$compound_unknown), No.Fuzzy.Match)))
+
+# Have any compounds been lost?
+all.unknowns <- sort(c(No.Fuzzy.Match, No.CL1.Match, unique(Confidence.Level.1$compound_unknown)))
+length(all.unknowns) == length(Unknowns$compound_unknown)
+
+
+# Let's land on MARS ------------------------------------------------------
+No.CL1.Match.df <- Unknowns %>%
+  filter(compound_unknown %in% No.CL1.Match)
 No.Fuzzy.Match.df <- Unknowns %>%
   filter(compound_unknown %in% No.Fuzzy.Match)
 
-Mission.Accomplished <- My.Fuzzy.Join %>%
-  left_join(Confidence.Level.1) %>%
+Mission.Accomplished <- Confidence.Level.1 %>%
   mutate(confidence_rank = ifelse(mz_similarity_score == 1 & rt_similarity_score == 1, 1, NA),
          confidence_source = ifelse(!is.na(confidence_rank), "Ingalls_Standards", NA)) %>%
-  left_join(everything.else.df) %>%
-  bind_rows(No.Fuzzy.Match.df)
+  bind_rows(No.CL1.Match.df) %>%
+  bind_rows(No.Fuzzy.Match.df) %>%
+  arrange(compound_unknown)
