@@ -98,10 +98,6 @@ MakeMS2CosineDataframe <- function(df) {
   scan2 <- MakeScantable(df["scan2"])
   mass1 <- df["mass1"]
   mass2 <- df["mass2"]
-  print("scan1")
-  print(scan1)
-  print("scan2")
-  print(scan2)
   
   mz.tolerance <- 0.02
   
@@ -109,8 +105,6 @@ MakeMS2CosineDataframe <- function(df) {
   weight2 <- (scan2[, 1] ^ 2) * sqrt(scan2[, 2])
   
   difference.matrix <- sapply(scan1[, 1], function(x) scan2[, 1] - x)
-  print("Matrix of scan differences:")
-  print(difference.matrix)
   same.index <- which(abs(difference.matrix) < mz.tolerance, arr.ind = TRUE)
   
   similarity <- sum(weight1[same.index[, 2]] * weight2[same.index[, 1]]) / 

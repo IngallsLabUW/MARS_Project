@@ -8,11 +8,11 @@ source("Functions.R")
 # Notes from this step
 
 # Timestamped/SHA-marked/Groundhog standards & MS2 sheets need to be used
-# Why the rt bajillion zeros?
 # Extra rows in mission.accomplished: why?
-# What about multiple matches?
+# What about multiple matches, does the current solution work?
 # Having some RT similarity calculation problems. Answers tend to be 0, nearly 0, or infinity.
 # Where do KRH and MARS IDs differ?
+# Mission Accomplished dataframe has some extra mz/rt/z columns that need to be checked.
 
 mz.flexibility <- 0.02
 rt.flexibility <- 0.02 # seconds
@@ -124,3 +124,4 @@ Mission.Accomplished <- Confidence.Level.1 %>%
   bind_rows(No.CL1.Match.df) %>%
   bind_rows(No.Fuzzy.Match.df) %>%
   arrange(compound_unknown)
+write.csv(Mission.Accomplished, "data_processed/confidence_level1.csv")
