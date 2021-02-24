@@ -5,7 +5,8 @@ KEGGCompounds_withMasses <- read.csv("data_extra/KEGGCompounds_withMasses.csv", 
 CommonContams <- read.csv("data_extra/CommonContams.csv", header = FALSE) %>%
   slice(-1) %>%
   row_to_names(row = 1) 
-MFs.frame <- read.csv("data_processed/MoNA_Output_df.csv") %>%
+
+MFs.frame <- read.csv("data_processed/confidence_level1.csv") %>%
   rename(MF_Frac = MF.Fraction) %>%
   rename(mz = mass2) # temporary rename for initial runthough 
 

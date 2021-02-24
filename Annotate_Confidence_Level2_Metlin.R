@@ -3,17 +3,6 @@ library(tidyverse)
 library(xml2)
 source("Functions.R")
 
-## Some notes:
-# Would love to use a closure for that run_number variable
-# Mz function needs to drop nas, for now I'm doing it manually
-# Once the output dataframes are settled, these scrapes will form the base of the
-# google drive metlin dataframe.
-# Need to make the scraped database for this: decide on a format and make the first one.
-# Can we include the column/z any other info in the metlin scrape? If I can get a list of potential parameters that might help.
-# I tried to access it myself and got yelled at by Metlin
-# Still need to get msms for metlin up and running, but not crucial.
-# n the getMetlinName function, it looks like the output of exact_mass is already accounting for the proton weight. So only need it for MoNA?
-
 auth_url <- "https://metlin.scripps.edu/lib/json/user.php"
 resp <- POST(auth_url, body = list(
   user="wkumler@uw.edu",
@@ -58,7 +47,7 @@ getMetlinMz_rmledit <- function(cmpd_mz, ppm = 2.5) {
     as.data.frame() %>%
     `names<-`(c("cmpd_id", "exact_mass", "cmpd_name", "formula",
                 "CAS", "KEGG", "MSMS", "Structure")) %>%
-    select(-Structure) %>%
+    #select(-Structure) %>%
     mutate(Ingalls_cmpd_mz = cmpd_mz)
   
   MSMS_subset <- subset(search_data, MSMS=="experimental")
@@ -181,7 +170,8 @@ getMetlinMS2 <- function(cmpd_id) { # punched in as the key
 Experimental.Values <- read.csv("data_processed/confidence_level1.csv") %>%
   select(-X) %>%
   mutate(mz_unknown = ifelse(is.na(mz_unknown) & !is.na(mz), mz, mz_unknown)) %>%
-  select(compound_unknown, KRH_identification, compound_known, mz_unknown, confidence_rank, confidence_source)
+  select(compound_unknown, KRH_identification, compound_known, mz_unknown, confidence_rank, confidence_source) %>%
+  slice(1:200)
 
 # Scrape Metlin -----------------------------------------------------------
 # Mini experimental test runs: TAKES A LONG TIME AND CURRENTLY CAN'T PARALLELLIZE IT FOR SOME REASON
@@ -204,3 +194,6 @@ system.time(
   experimental_databyname <- lapply(unique(Experimental.Values.forname[, 3]), getMetlinName_rmledit)  # basically a standards scrape
 ) 
 experimental_databyname_df <- bind_rows(experimental_databyname)
+t <- experimental_databymz_df %>% 
+  select(compound_unknown, cmpd_name, formula, KRH_identification, compound_known, mz_unknown, exact_mass) %>% 
+  rename(compound_stds = compound_known, mz_experimental = mz_unknown, exact_mass_metlin = exact_mass)
