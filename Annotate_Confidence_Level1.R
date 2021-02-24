@@ -5,15 +5,6 @@ options(digits = 6)
 
 source("Functions.R")
 
-# Notes from this step
-
-# Timestamped/SHA-marked/Groundhog standards & MS2 sheets need to be used
-# Extra rows in mission.accomplished: why?
-# What about multiple matches, does the current solution work?
-# Having some RT similarity calculation problems. Answers tend to be 0, nearly 0, or infinity.
-# Where do KRH and MARS IDs differ?
-# Mission Accomplished dataframe has some extra mz/rt/z columns that need to be checked.
-
 mz.flexibility <- 0.02
 rt.flexibility <- 0.02 # seconds
 

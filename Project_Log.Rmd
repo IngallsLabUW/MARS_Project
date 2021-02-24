@@ -9,9 +9,6 @@ output:
 
 ### MARS Project Log
 
-- In the getMetlinName function, it looks like the output of exact_mass is already accounting for the proton weight. So only need it for MoNA?
-- Still need to get msms for metlin up and running, but not crucial.
-
 - Fragment matching: % of library sample found in fragments. 
     Example, experimental spectra has *110.97466, 100;* 110.03485, 39.1; *58.02862, 33.5;* 68.01299, 26.6; 111.01888, 20.6.
     Library spectra has               *110.97466, 100;* 109.00000, 40.1; *58.02862, 33.5;* 70.33989, 26.6; 121.04950, 15.0.
@@ -23,24 +20,6 @@ What about potential matches that are non/z non/column matched?
 
 This is an ongoing log: a place for build notes and questions.
 *This is not to be confused with the Design Doc on the Shared Google Drive; that is for overall design direction and team suggestions. It is also not a README, which will be written closer to project completion.*
-
-What is being worked on right now
-
-*Confidence Level 1*
-
-- Use [FuzzyJoin](http://varianceexplained.org/fuzzyjoin/) to match m/z, rt, column, and z for positive IDs and return a dataframe of matches. 
-
-*Similarity Score*
-
-- For the overall spectral similarity score, a combination of several equations from KRH and Tsugawa et. al form a total similarity equation for scoring.
-
-*Confidence Level 2*
-
-- Match unknown experimental values to MoNA and Metlin dataframes (which will be updated either every quarter, or as often as necessary). 
-
-*Confidence Level 3*
-KEGG
-
 
 #### Notes
 
