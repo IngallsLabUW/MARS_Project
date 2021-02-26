@@ -3,14 +3,8 @@ library(tidyverse)
 library(xml2)
 source("Functions.R")
 
-auth_url <- "https://metlin.scripps.edu/lib/json/user.php"
-resp <- POST(auth_url, body = list(
-  user="wkumler@uw.edu",
-  password="password",
-  action="login"
-), add_headers(referer="https://metlin.scripps.edu/landing_page.php?pgcontent=mainPage"))
-content(resp)
 
+### DO NOT USE THIS SCRIPT ###
 
 # Functions ---------------------------------------------------------------
 run_number <- 0
@@ -185,6 +179,10 @@ experimental_databymz_df <- bind_rows(experimental_databymz) %>%
   left_join(Experimental.Values, by = "mz_unknown") %>%
   select(compound_unknown, everything()) %>%
   unique()
+
+ethyltests <- experimental_databymz_df %>%
+  filter(cmpd_name %in% c("Ethyl sulfate", "Ethyl methyl phosphate")) %>%
+  select(-CAS, -KEGG, -Structure)
 
 
 # This is more a scrape for names we already have

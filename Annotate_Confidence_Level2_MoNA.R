@@ -44,6 +44,9 @@ Knowns.MoNA <- MoNA.MetaData.Neg %>%
   unique()
 
 # Fuzzy Join --------------------------------------------------------------
+# Please note: the below selections/renamings are subject to change. Adjust
+# namings and selections according to your needs; be aware that adding more
+# columns may cause join explosions.
 MoNA.Fuzzy.Join <- Knowns.MoNA %>%
   difference_left_join(Unknowns, by = c("MH_mass"), max_dist = 0.02) %>%
   rename(MH_mass_MoNA = MH_mass.x,
@@ -51,27 +54,14 @@ MoNA.Fuzzy.Join <- Knowns.MoNA %>%
          compound_standards = compound_known,
          mz_standards = mz_known,
          rt_seconds_standards = rt_seconds_known, 
-         #column_standards = column_known, 
-         #z_standards = z_known, 
-         #MS2_standards = MS2_known,
          mz_similarity_score_stds = mz_similarity_score,
          rt_similarity_score_stds = rt_similarity_score,
-         #MS2_cosine_similarity_stds = MS2_cosine_similarity,
          total_similarity_score_stds = total_similarity_score) %>%
   select(compound_unknown, KRH_identification, compound_standards, SpectraID, name_MoNA,
          MH_mass_unknown, MH_mass_MoNA, mz_standards,
          rt_seconds_unknown, rt_seconds_MoNA, rt_seconds_standards,
-         #MS2_standards, MS2_unknown,
-         mz_similarity_score_stds, rt_similarity_score_stds, #MS2_cosine_similarity_stds,
+         mz_similarity_score_stds, rt_similarity_score_stds, 
          total_similarity_score_stds, confidence_rank, confidence_source) %>%
-  # select(compound_unknown, KRH_identification, compound_standards, SpectraID, name_MoNA,
-  #        MH_mass_unknown, MH_mass_MoNA, mz_standards,
-  #        rt_seconds_unknown, rt_seconds_MoNA, rt_seconds_standards,
-  #        column_unknown, column_standards,
-  #        z_unknown, z_standards,
-  #        MS2_standards, MS2_unknown,
-  #        mz_similarity_score_stds, rt_similarity_score_stds, MS2_cosine_similarity_stds,
-  #        total_similarity_score_stds, confidence_rank, confidence_source) %>%
   filter(!is.na(compound_unknown)) %>%
   unique()
 
@@ -79,7 +69,6 @@ Confidence.Level.2 <- MoNA.Fuzzy.Join %>%
   rowwise() %>%
   mutate(mz_similarity_score_MoNA = exp(-0.5 * (((MH_mass_unknown - MH_mass_MoNA) / mz.flexibility) ^ 2)),
          rt_similarity_score_MoNA = exp(-0.5 * (((rt_seconds_unknown - rt_seconds_MoNA) / rt.flexibility) ^ 2)))
-
 
 # Experimental Spectra ----------------------------------------------------
 Experimental.Spectra <- read.csv("data_processed/confidence_level1.csv") %>%
@@ -160,18 +149,4 @@ system.time(
 )
 
 outputdf_parallel <- bind_rows(outputdf_parallel) %>%
-  unique()
-
-# Test combination
-oxo.proline <- outputdf_parallel %>%
-  filter(compound_unknown == 6) %>%
-  left_join(Confidence.Level.2, by = "compound_unknown") %>%
-  unique()
-
-
-# What got lost
-No.MoNA.Match <- Unknowns %>%
-  select(compound_unknown) %>%
-  filter(compound_unknown %in% setdiff(1:nrow(Unknowns), MoNA.Fuzzy.Join$compound_unknown)) %>%
-  pull() %>% 
   unique()

@@ -115,4 +115,7 @@ Mission.Accomplished <- Confidence.Level.1 %>%
   bind_rows(No.CL1.Match.df) %>%
   bind_rows(No.Fuzzy.Match.df) %>%
   arrange(compound_unknown)
-write.csv(Mission.Accomplished, "data_processed/confidence_level1.csv")
+
+# Save your csv -----------------------------------------------------------
+# Here, save your Mission.Accomplished dataframe for use in the next level.
+
