@@ -13,7 +13,11 @@ output:
     Example, experimental spectra has *110.97466, 100;* 110.03485, 39.1; *58.02862, 33.5;* 68.01299, 26.6; 111.01888, 20.6.
     Library spectra has               *110.97466, 100;* 109.00000, 40.1; *58.02862, 33.5;* 70.33989, 26.6; 121.04950, 15.0.
     If the above two lines were identical, the fragment match would be 100%. In this situation, the fragment match would be 40% or 0.4.
+    
+- ppm matches: is 7 a good cutoff? And should I actually remove those matches, or keep them but without the CL1 stamp?
+- rt flexibility: maybe it's a little strict? Use Taurine as an example. I feel like it should be flexier.
 
+- The "replacing" of the theoretical values to cut down on columns should be a hidden function.
 
 What about potential matches that are non/z non/column matched?
 ---
