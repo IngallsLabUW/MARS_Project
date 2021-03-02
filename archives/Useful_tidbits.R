@@ -122,3 +122,58 @@ IsolateMoNACandidates <- function(MoNA.Mass) {
   
   return(final.candidates)
 }
+
+
+#### MoNa Matchin
+
+
+# Experimental Values-------------------------------------------------
+# MH_mass is the compound mass minus the weight of a proton
+Experimental <- read.csv("data_processed/confidence_level1.csv") %>%
+  filter(z_experimental == -1) %>%
+  rename(MH_mass = mz_experimental) %>%
+  select(-contains("column"), -z_experimental, -z_theoretical)
+
+# Theoretical (MoNA) -----------------------------------------------------------
+# exact_mass is what we should be matching to
+Theoretical.MoNA <- MoNA.MetaData.Neg %>%
+  filter(name == "exact mass") %>%
+  mutate(name = str_replace(name, " ", "_"),
+         name = str_replace(name, "/", "")) %>%
+  pivot_wider(., names_from = "name", values_from = "value") %>%
+  filter(str_detect(retention_time, "min"),
+         !str_detect(retention_time, "N/A")) %>%
+  mutate(retention_time = gsub(" .*", "", retention_time),
+         rt_seconds_MoNA = as.numeric(retention_time) * 60) %>%
+  left_join(MoNA.Names.Neg, by = "SpectraID") %>%
+  rename(name_MoNA = name) %>%
+  mutate(MH_mass = as.numeric(exact_mass) - 1.0072766) %>%
+  select(SpectraID, MH_mass, name_MoNA, rt_seconds_MoNA) %>%
+  unique()
+
+# Fuzzy Join --------------------------------------------------------------
+# Please note: the below selections/renamings are subject to change. Adjust
+# namings and selections according to your needs; be aware that adding more
+# columns may cause join explosions.
+MoNA.Fuzzy.Join <- Theoretical.MoNA %>%
+  difference_left_join(Experimental, by = c("MH_mass"), max_dist = 0.02) %>%
+  rename(MH_mass_MoNA = MH_mass.x,
+         MH_mass_unknown = MH_mass.y,
+         compound_standards = compound_known,
+         mz_standards = mz_known,
+         rt_seconds_standards = rt_seconds_known,
+         mz_similarity_score_stds = mz_similarity_score,
+         rt_similarity_score_stds = rt_similarity_score,
+         total_similarity_score_stds = total_similarity_score) %>%
+  select(compound_unknown, KRH_identification, compound_standards, SpectraID, name_MoNA,
+         MH_mass_unknown, MH_mass_MoNA, mz_standards,
+         rt_seconds_unknown, rt_seconds_MoNA, rt_seconds_standards,
+         mz_similarity_score_stds, rt_similarity_score_stds,
+         total_similarity_score_stds, confidence_rank, confidence_source) %>%
+  filter(!is.na(compound_unknown)) %>%
+  unique()
+
+Confidence.Level.2 <- MoNA.Fuzzy.Join %>%
+  rowwise() %>%
+  mutate(mz_similarity_score_MoNA = exp(-0.5 * (((MH_mass_unknown - MH_mass_MoNA) / mz.flexibility) ^ 2)),
+         rt_similarity_score_MoNA = exp(-0.5 * (((rt_seconds_unknown - rt_seconds_MoNA) / rt.flexibility) ^ 2)))

@@ -20,6 +20,8 @@ output:
 - The "replacing" of the theoretical values to cut down on columns should be a hidden function.
 
 What about potential matches that are non/z non/column matched?
+
+
 ---
 
 This is an ongoing log: a place for build notes and questions.
