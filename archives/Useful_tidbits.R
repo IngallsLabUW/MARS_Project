@@ -74,3 +74,51 @@ A3Confidence_MS2s <- My.Fuzzy.Join %>% # mz and 10 RT
   rowwise() %>% 
   mutate(MS2cosinesim = MS2CosineSimilarity(MakeScantable(MS2_Unknowns), MakeScantable(MS2_Standards))) %>%
   mutate(Total.Similarity.Score = ((MS2cosinesim + mz_Similarity + RT_Similarity) / 3) * 100)
+
+
+IsolateMoNACandidates <- function(MoNA.Mass) {
+  # Create a dataframe of potential compound matches from the downloaded MoNA database.
+  #
+  # Args
+  #   MoNA.Mass: Individual dataframe value of mass, minus hydrogen, 
+  #              taken from the MoNA Spectra relational csvs. 
+  #
+  # Returns
+  #   final.candidates: Dataframe of potential matches for experimental features.
+  potential.candidates <- MoNA.Spectra.MHMass %>% 
+    filter(MH_mass > MoNA.Mass - 0.020,  
+           MH_mass < MoNA.Mass + 0.020) %>% 
+    difference_inner_join(Experimental.Spectra.ForJoin, by = "MH_mass", max_dist = 0.02) %>% 
+    mutate(scan1 = spectrum_KRHform_filtered, # scan1 is MS2 from MoNA
+           scan2 = MS2,                       # scan2 is MS2 from the experimental data
+           mass1 = MH_mass.x,                 # mass1 is the primary mass from MoNA
+           mass2 = MH_mass.y)                 # mass2 is the primary mass from experimental data
+  
+  if (length(potential.candidates$ID) == 0) {
+    print("There are no potential candidates.")
+    No.Match.Return <- MF.Fraction %>%
+      mutate(MassBankMatch = NA,
+             MassBankppm = NA,
+             MassBankCosine1 = NA)
+    
+    return(No.Match.Return)
+  }
+  
+  # Add cosine similarity scores
+  print("Making potential candidates")
+  
+  potential.candidates$Cosine1 <- apply(potential.candidates, 1, FUN = function(x) MakeMS2CosineDataframe(x)) 
+  
+  Candidates.Filtered.Cosine <- potential.candidates %>%
+    filter(Cosine1 > Cosine.Score.Cutoff) %>%
+    arrange(desc(Cosine1))
+  
+  final.candidates <- Candidates.Filtered.Cosine %>%
+    mutate(MassBankMatch = paste(Names, ID, sep = " ID:"),
+           MassBankppm = abs(mass1 - mass2) / mass2 * 10^6,
+           MassBankCosine1 = Cosine1) %>%
+    unique() %>%
+    filter(MassBankppm < MassBank.ppm.Cutoff) 
+  
+  return(final.candidates)
+}

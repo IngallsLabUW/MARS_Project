@@ -70,7 +70,6 @@ My.Fuzzy.Join <- Theoretical.Values %>%
   arrange(compound_experimental)
 
 # Confidence Level 1 ----------------------------------------  
-# DHPS as example
 Confidence.Level.1 <- My.Fuzzy.Join %>%
   filter(z_experimental == z_theoretical,
          column_experimental == column_theoretical) %>%
@@ -122,5 +121,5 @@ Mission.Accomplished <- Confidence.Level.1 %>%
   arrange(compound_experimental)
 
 # Save your csv -----------------------------------------------------------
-# Here, save your Mission.Accomplished dataframe for use in the next level.
-write.csv(Mission.Accomplished, "data_processed/confidence_level1.csv")
+# Save your Mission.Accomplished dataframe for use in the next level.
+write.csv(Mission.Accomplished, "data_processed/confidence_level1.csv", row.names = FALSE)

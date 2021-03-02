@@ -14,7 +14,7 @@ MakeScantable <- function(scan) {
                           col.names = c("mz", "intensity"), fill = TRUE) %>%
     mutate(mz = as.numeric(mz %>% str_replace(",", "")),
            intensity = as.numeric(intensity %>% str_replace(";", "")),
-           intensity = round(intensity/max(intensity)*100, digits = 1)) %>%
+           intensity = round(intensity / max(intensity) * 100, digits = 1)) %>%
     filter(intensity > 0.5) %>%
     arrange(desc(intensity))
   
@@ -46,53 +46,6 @@ MS2CosineSimilarity <- function(scan1, scan2) {
 }
 
 
-IsolateMoNACandidates <- function(MoNA.Mass) {
-  # Create a dataframe of potential compound matches from the downloaded MoNA database.
-  #
-  # Args
-  #   MoNA.Mass: Individual dataframe value of mass, minus hydrogen, 
-  #              taken from the MoNA Spectra relational csvs. 
-  #
-  # Returns
-  #   final.candidates: Dataframe of potential matches for experimental features.
-  potential.candidates <- MoNA.Spectra.MHMass %>% 
-    filter(MH_mass > MoNA.Mass - 0.020,  
-           MH_mass < MoNA.Mass + 0.020) %>% 
-    difference_inner_join(Experimental.Spectra.ForJoin, by = "MH_mass", max_dist = 0.02) %>% 
-    mutate(scan1 = spectrum_KRHform_filtered, # scan1 is MS2 from MoNA
-           scan2 = MS2,                       # scan2 is MS2 from the experimental data
-           mass1 = MH_mass.x,                 # mass1 is the primary mass from MoNA
-           mass2 = MH_mass.y)                 # mass2 is the primary mass from experimental data
-  
-  if (length(potential.candidates$ID) == 0) {
-    print("There are no potential candidates.")
-    No.Match.Return <- MF.Fraction %>%
-      mutate(MassBankMatch = NA,
-             MassBankppm = NA,
-             MassBankCosine1 = NA)
-    
-    return(No.Match.Return)
-  }
-  
-  # Add cosine similarity scores
-  print("Making potential candidates")
-  
-  potential.candidates$Cosine1 <- apply(potential.candidates, 1, FUN = function(x) MakeMS2CosineDataframe(x)) 
-  
-  Candidates.Filtered.Cosine <- potential.candidates %>%
-    filter(Cosine1 > Cosine.Score.Cutoff) %>%
-    arrange(desc(Cosine1))
-  
-  final.candidates <- Candidates.Filtered.Cosine %>%
-    mutate(MassBankMatch = paste(Names, ID, sep = " ID:"),
-           MassBankppm = abs(mass1 - mass2) / mass2 * 10^6,
-           MassBankCosine1 = Cosine1) %>%
-    unique() %>%
-    filter(MassBankppm < MassBank.ppm.Cutoff) 
-  
-  return(final.candidates)
-}
-
 MakeMS2CosineDataframe <- function(df) {
   scan1 <- MakeScantable(df["scan1"])
   scan2 <- MakeScantable(df["scan2"])
@@ -106,8 +59,8 @@ MakeMS2CosineDataframe <- function(df) {
   
   difference.matrix <- sapply(scan1[, 1], function(x) scan2[, 1] - x)
   same.index <- which(abs(difference.matrix) < mz.tolerance, arr.ind = TRUE)
-  
-  similarity <- sum(weight1[same.index[, 2]] * weight2[same.index[, 1]]) / 
+
+  similarity <- sum(weight1[same.index[, 2]] * weight2[same.index[, 1]]) /
     (sqrt(sum(weight2 ^ 2)) * sqrt(sum(weight1 ^ 2)))
   
   return(similarity)
