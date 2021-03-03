@@ -7,3 +7,6 @@
 *.txt
 *.tsv
 
+!data_extra/Standards_MS2/*.csv
+!data_extra/Ingalls_Lab_Standards_Feb1.csv
+!data_extra/Example_Experimental_Data.csv
