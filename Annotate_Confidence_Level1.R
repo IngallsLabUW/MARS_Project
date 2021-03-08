@@ -6,7 +6,7 @@ options(digits = 6)
 source("Functions.R")
 
 mz.flexibility <- 0.02
-rt.flexibility <- 0.02 # seconds
+rt.flexibility <- 30 # seconds
 
 # Theoretical Values ----------------------------------------------------------------------
 # Gather and summarize theoretical values from the standards sheet and the Ingalls MS2 data
@@ -110,7 +110,7 @@ No.Fuzzy.Match.df <- Experimental.Values %>%
 Mission.Accomplished <- Confidence.Level.1 %>%
   bind_rows(No.CL1.Match.df) %>%
   bind_rows(No.Fuzzy.Match.df) %>%
-  mutate(confidence_rank = ifelse(mz_similarity_score == 1 & rt_similarity_score == 1 & ppm_mass_error < 7, 1, NA),
+  mutate(confidence_rank = ifelse(mz_similarity_score > 0.9 & rt_similarity_score > 0.75 & ppm_mass_error < 7, 1, NA),
          confidence_source = ifelse(!is.na(confidence_rank), "Ingalls_Standards", NA)) %>%
   mutate(mz_experimental = ifelse(is.na(mz_experimental) & !is.na(mz), mz, mz_experimental),
          rt_sec_experimental = ifelse(is.na(rt_sec_experimental) & !is.na(rt), rt, rt_sec_experimental),

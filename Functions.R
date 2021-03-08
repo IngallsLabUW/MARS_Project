@@ -66,6 +66,9 @@ MakeMS2CosineDataframe <- function(df) {
   return(similarity)
 }
 
+ReplaceNA <- function(column) {
+  gsub("NA; ", "", column)
+}
 
 # oldfunctions ------------------------------------------------------------
 
