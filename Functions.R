@@ -1,3 +1,55 @@
+IsolateMoNACandidates <- function(MoNA.Mass, experimental.df) {
+  # Compare experimental mass features to scraped MoNA data,
+  # based on MS1 and MS2 information.
+  #
+  # Args
+  #   MoNA.Mass: Single MoNA mass, isolated from scraped MoNA df.
+  #   experimental.df: experimental dataframe, islated to contain 
+  #                    only MS1 and MS2 data.
+  # 
+  # Returns
+  #   final.candidates: dataframe of experimental data, matched with
+  #                     information from MoNA.
+  #
+  potential.candidates <- MoNA.Spectra %>% 
+    filter(MH_mass > MoNA.Mass - 0.020,  
+           MH_mass < MoNA.Mass + 0.020) %>% 
+    difference_inner_join(experimental.df, by = "MH_mass", max_dist = 0.02) %>% 
+    rename(scan1 = spectrum_KRHform_filtered, # scan1 is MS2 from MoNA
+           scan2 = MS2_experimental,          # scan2 is MS2 from the experimental data
+           mass1 = MH_mass.x,                 # mass1 is the mass from MoNA
+           mass2 = MH_mass.y)                 # mass2 is the mass from experimental data
+  
+  if (length(potential.candidates$ID) == 0) {
+    print("There are no potential candidates.")
+    No.Match.Return <- Mass.Feature %>%
+      mutate(massbank_match = NA,
+             massbank_ppm = NA,
+             massbank_cosine_similarity = NA)
+    
+    return(No.Match.Return)
+  }
+  
+  # Add cosine similarity scores
+  print("Making potential candidates")
+  
+  potential.candidates$massbank_cosine_similarity <- apply(potential.candidates, 1, FUN = function(x) MakeMS2CosineDataframe(x))
+  
+  final.candidates <- potential.candidates %>%
+    mutate(massbank_match = paste(Names, ID, sep = " ID:"),
+           massbank_ppm = abs(mass2 - mass1) / mass1 * 10^6) %>% 
+    rename(MS2_massbank = scan1,
+           mz_massbank = mass1, # should maybe name it something else because of mh?...
+           MS2_experimental = scan2,
+           mz_experimental = mass2) %>%
+    unique() %>%
+    filter(massbank_ppm < massbank.ppm.cutoff,
+           massbank_cosine_similarity > cosine.score.cutoff) %>%
+    arrange(desc(massbank_cosine_similarity))
+  
+  return(final.candidates)
+}
+
 MakeScantable <- function(scan) {
   # Create a filtered MS2 scantable from a concatenated scanlist of MS2s.
   #

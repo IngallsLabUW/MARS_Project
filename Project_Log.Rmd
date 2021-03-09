@@ -20,12 +20,10 @@ MARS. MARS will not facilitate this step most likely.
 ----    
 
 Potential layout for in-house database:
-Name TBD, just samples? Post-QC?
+Post-QC?
 
-example: 171009_Smp_DSW700m_1
-
-**ID.col      | mz     | column | z  | rt | ms2 if possible | other.metadata | Full concatenated name**
-MESOSCOPE2017 | 88.987 | HILIC  | -1 | Cruise name, replicate, 
+**ID.col | mz       | rt        | Column | z  | ms2 if possible | other.metadata**
+MetCo1   | 102.0549 | 735.36592 | HILIC  | -1 | 
 
 
 ---
