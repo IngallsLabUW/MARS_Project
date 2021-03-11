@@ -14,7 +14,7 @@ output:
     Library spectra has               *110.97466, 100;* 109.00000, 40.1; *58.02862, 33.5;* 70.33989, 26.6; 121.04950, 15.0.
     If the above two lines were identical, the fragment match would be 100%. In this situation, the fragment match would be 40% or 0.4.
 - The "replacing" of the theoretical values to cut down on columns should be a hidden function.
-- For retention time, use the standar runs that are in the same batches to calibrate retention time. This would be BEFORE entering 
+- For retention time, use the standard runs that are in the same batches to calibrate retention time. This would be BEFORE entering 
 MARS. MARS will not facilitate this step most likely. 
 
 ----    
