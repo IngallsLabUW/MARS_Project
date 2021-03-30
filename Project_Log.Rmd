@@ -33,5 +33,7 @@ This is an ongoing log: a place for build notes and questions.
 
 #### Notes
 
+- Combine MoNA names so it's a little easier to manage the dataset.
+- Make Metlin hard to reach. Don't overload. Scrape what we don't know, like KRH's unknowns.
 - Need to replace old compound names with new ones!
 - For DDA high resolution, the mass spec sees a high signal. When it see that, it takes above and below that signal and isolates it in the collision chamber. In the ms2 df, the first column is the exact mass with an intensity of 100 (maximum), then second mass and intensity, etc. 
