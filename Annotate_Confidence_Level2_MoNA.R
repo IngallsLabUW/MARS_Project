@@ -29,15 +29,6 @@ MoNA.Spectra <- MoNA.Spectra %>%
   select(ID, Names, spectrum_KRHform_filtered, MH_mass) %>%
   mutate_all(., list(~na_if(.,""))) %>%
   drop_na()
-  
-
-MoNA.CmpInfo.Neg <- read.csv("data_extra/MoNA_RelationalSpreadsheets/NEG_CmpInfo.csv") %>%
-  select(SpectraID, name, value) %>%
-  filter(name == "molecular formula")
- 
-# MoNA.CmpInfo.Pos <- read.csv("data_extra/MoNA_RelationalSpreadsheets/POS_CmpInfo.csv") %>%
-#   select(SpectraID, name, value) %>%
-#   filter(name == "molecular formula")
 
 
 # Experimental Spectra ----------------------------------------------------

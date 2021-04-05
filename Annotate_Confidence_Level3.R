@@ -38,8 +38,9 @@ My.Fuzzy.Join <- MoNA.Spectra %>%
   rename(MH_mass_MoNA = MH_mass.x,
          MH_mass_experimental = MH_mass.y) %>%
   mutate(mz_similarity_score = exp(-0.5 * (((MH_mass_experimental - MH_mass_MoNA) / 0.02) ^ 2))) %>%
+  select(compound_experimental, KRH_identification, ID, Names, MH_mass_experimental, MH_mass_MoNA, 
+         z_experimental, z_MoNA, mz_similarity_score) %>% #, confidence_rank, confidence_source) %>%
   arrange(compound_experimental)
-
 
 # Sanity check -------------------------------------------------------------
 No.Fuzzy.Match <- setdiff(1:nrow(Experimental.Values),
@@ -55,18 +56,22 @@ No.Fuzzy.Match.df <- Experimental.Values %>%
   filter(compound_experimental %in% No.Fuzzy.Match) %>%
   rename(MH_mass_experimental = MH_mass)
 
-
 # Go to MARS ------------------------------------------------
 final <- My.Fuzzy.Join %>%
   bind_rows(No.Fuzzy.Match.df) %>%
   mutate(confidence_rank3 = ifelse(mz_similarity_score > 0.9, 3, NA),
-         confidence_source = ifelse(!is.na(confidence_rank), "MoNA", NA),
+         confidence_source = ifelse(is.na(confidence_rank3), confidence_source, "MoNA"),
          confidence_rank = ifelse(is.na(confidence_rank) & !is.na(confidence_rank3), confidence_rank3, confidence_rank)) %>%
   select(compound_experimental, "MoNA_ID" = ID, "MoNA_Names" = Names, KRH_identification, MH_mass_MoNA, MH_mass_experimental,
          z_MoNA, z_experimental, "mz_similarity_score_MoNa" = mz_similarity_score, confidence_rank, confidence_source) 
 
-##ISSUES HAPPENING WITH CONFIDENCE SCORE
+
 Confidence.Level.3 <- final %>%
-  left_join(Confidence.Level.2, by = c("compound_experimental", "KRH_identification", "z_experimental",
-                                       "confidence_rank", "confidence_source")) %>%
+  left_join(Confidence.Level.2) %>%
+  unique() %>%
+  select(compound_experimental, KRH_identification, compound_theoretical, ID, MoNA_ID, MoNA_Names, massbank_match, everything()) %>%
   arrange(compound_experimental)
+
+write.csv(Confidence.Level.3, "data_processed/confidence_level3.csv", row.names = FALSE)
+
+

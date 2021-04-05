@@ -5,7 +5,8 @@ Cyano.MS2 <- read.csv("data_extra/Standards_MS2/Cyano_stds_withMS2s.csv") %>%
   mutate(column = "RP",
   z = NA)
 
-## Functions
+
+# Functions ---------------------------------------------------------------
 ConcatToScan <- function(concat.format) {
   final <- cSplit(concat.format, "MS2", sep = ";") %>%
     pivot_longer(cols = starts_with("MS2")) %>%
@@ -33,7 +34,8 @@ ScanToConcat <- function(scantable) {
   return(concatenated)
 }
 
-## Both Layouts
+
+# Both Layouts ------------------------------------------------------------
 Concatenated.Format <- Cyano.MS2 %>%
   rename(MS2 = MS2s) %>%
   select(compound, MS2)
@@ -44,8 +46,8 @@ Scantable.Format <- cSplit(Concatenated.Format, "MS2", sep = ";") %>%
   select(compound, mz, intensity) %>%
   drop_na()
 
-## Switch between layouts
 
+# Switch Between Layouts --------------------------------------------------
 # Scantable -> Concatenated
 Scantable.to.Concatenated <- Scantable.Format %>%
   group_modify(~ScanToConcat(.x))
