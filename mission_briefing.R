@@ -1,3 +1,4 @@
+library(fuzzyjoin)
 library(tidyverse)
 
 # Concept:
@@ -9,7 +10,7 @@ library(tidyverse)
 # What is the overall quality of this feature? How are the peaks? 
 # Is it a common contaminant? Does it show up on the CC list?
 
-untargeted.metco <- read.csv("data_extra/MetCo.csv") %>%
+untargeted.metco <- read.csv("data_extra/MetCo.csv") %>% # From Katherine's "Metabolomic Consequences" paper
   select(MF_Frac, BestMatch, Confidence, mz, rt, MS2dat1) %>%
   arrange(mz) %>%
   separate(MF_Frac, into = c("MF", "columncharge"), sep = "_") %>%
@@ -21,7 +22,7 @@ untargeted.metco <- read.csv("data_extra/MetCo.csv") %>%
   select(primary_key, mz, rt, column, z, MS2dat1, previous_match, previous_rank) %>%
   rename(MS2 = MS2dat1)
 
-untargeted.sulfnet <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>%
+untargeted.sulfnet <- read.csv("data_from_lab_members/MFCluster_Assignments_Katherine.csv") %>% # From Katherine's "Sulfonate-Based Networks" paper
   separate(MassFeature_Column, into = c("MassFeature", "drop"), sep = "_") %>%
   rename(column = Column,
          previous_match = Identification,
@@ -29,6 +30,7 @@ untargeted.sulfnet <- read.csv("data_from_lab_members/MFCluster_Assignments_Kath
   mutate(primary_key = paste("SulfNet", 1:nrow(.), sep = "")) %>%
   select(primary_key, mz, rt, column, z, MS2, previous_match, previous_rank)
 
+# Combine to potential homebase
 homebase <- untargeted.metco %>%
   rbind(untargeted.sulfnet)
 

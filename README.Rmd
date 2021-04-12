@@ -9,10 +9,14 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+*THIS IS AN OLD README FROM THE PROJECT BUILD. PLEASE GO TO THE PHOBOS PACKAGE ON GITHUB FOR CURRENT INFORMATION.*
+
+[Phobos](https://github.com/IngallsLabUW/phobos)
+
+---
+
 ## MARS
 ### Metabolite Annotation, Rank and Sort
-
-*This project is in beta. Expect problems and updates!*
 
 The MARS project is a way to easily identify unknown mass features (MFs) in your data. It consists of three major sections: 
 
