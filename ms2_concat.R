@@ -11,9 +11,8 @@ NonScaled.MS2 <- read.csv("~/work/Ingalls_Standards/MSMS/data_processed/Ingalls_
 ConcatToScan <- function(concat.format) {
   scantable <- cSplit(concat.format, "MS2", sep = ";") %>%
     pivot_longer(cols = starts_with("MS2")) %>%
-    separate(value, sep = ",", into = c("mz", "intensity")) %>%
-    select(compound, mz, intensity, file_name) #%>%
-    #drop_na()
+    separate(value, sep = ",", into = c("mz", "intensity")) #%>%
+    #select(compound, mz, intensity, file_name)
   
   return(scantable)
 }
@@ -48,7 +47,7 @@ ScaleMS2 <- function(scan) {
   return(scantable)
 }
 
-  
+
 # Both Layouts ------------------------------------------------------------
 Concatenated.Format <- Cyano.MS2 %>%
   rename(MS2 = MS2s) %>%
@@ -74,4 +73,61 @@ Concatenated.to.Scantable <- Concatenated.Format %>%
 # Scale raw MS2 data --------------------------------------------------
 ScaledforMS2 <- NonScaled.MS2 %>%
   rowwise() %>%
-  mutate(MS2_2 = ScaleMS2(MS2))
+  mutate(MS2_scaled = ScaleMS2(MS2))
+
+################################################################################################################
+
+PlotScaled <- function(compound.name) {
+  scaled <- ScaledforMS2 %>%
+    filter(grepl("Mix1", filename)) %>%
+    filter(compound_name == compound.name & voltage == 20) %>%
+    select("compound" = compound_name, "file_name" = filename, voltage, "MS2" = MS2_scaled) %>%
+    group_modify(~ConcatToScan(.x)) %>%
+    mutate(B = substr(file_name, nchar(file_name)-9+1, nchar(file_name))) %>%
+    mutate(run = substr(B,1,nchar(B)-5)) %>%
+    select(-name, -B, -file_name) %>%
+    unique() %>%
+    drop_na() %>%
+    mutate(intensity = as.numeric(intensity)) %>%
+    mutate(mz = as.numeric(mz))
+  
+  plot <- ggplot(scaled, aes(x = mz, y = intensity, group = run)) +
+    #geom_line(aes(color = run), size=1.2) +
+    geom_point(aes(color = run)) +
+    theme(axis.text.x = element_text(angle = 90)) +
+    ggtitle(paste(compound.name, "20 volts, PosMix1, Scaled"))
+  
+  print(plot)
+}
+
+plot1 <- PlotScaled("4-Aminobutyric acid")
+plot2 <- PlotScaled("5-Hydroxyectoine")
+plot3 <- PlotScaled("Adenine")
+plot4 <- PlotScaled("Isocitric acid")
+
+require(gridExtra)
+grid.arrange(plot1, plot2, plot3, plot4, ncol=2)
+
+
+
+
+
+## garbage
+
+adenine.raw <- NonScaled.MS2 %>%
+  filter(compound_name == "Adenine" & voltage == 20) %>%
+  select("compound" = compound_name, "file_name" = filename, voltage, MS2) %>%
+  group_modify(~ConcatToScan(.x)) %>%
+  filter(grepl("Mix1", file_name)) %>%
+  mutate(B = substr(file_name, nchar(file_name)-9+1, nchar(file_name))) %>%
+  mutate(run = substr(B,1,nchar(B)-5)) %>%
+  select(-name, -B, -file_name) %>%
+  unique() %>%
+  drop_na()
+
+t.raw <- ggplot(adenine.raw, aes(x = mz, y = intensity, group = run)) +
+  geom_line(aes(color = run), size=1.2) +
+  geom_point() +
+  ggtitle("Adenine, 20 volts, Mix1, Raw Data")
+t.raw
+

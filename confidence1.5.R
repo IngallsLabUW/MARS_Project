@@ -1,5 +1,5 @@
-## 
 
+# Will's info -------------------------------------------------------------
 
 raw_stans <- read.csv(paste0("https://raw.githubusercontent.com/",
                              "IngallsLabUW/Ingalls_Standards/",
@@ -26,6 +26,7 @@ raw_stans <- read.csv(paste0("https://raw.githubusercontent.com/",
 # "classes" denotes the ClassyFire classes the compound is suspected to belong to, which can be quite extensive; 
 # "formula_deduced" is kinda like a confidence level 2.5 where I'm pretty darn sure that's the MF but I'm only using m/z data to get it; 
 # and "feature" is just an index column that I use to refer back to the actual peak areas in the other table.
+read.csv("data_extra/confidence1.5/anno_table.csv")
 
 
 # Then there's the actual peak table with area information: 
@@ -36,8 +37,14 @@ raw_stans <- read.csv(paste0("https://raw.githubusercontent.com/",
 # intb is mostly useless but hypothetically is "integration to baseline"; 
 # maxo is max peak height; sn is signal-to-noise, with "good" peaks having sn values > 20;
 # ignore sample; and file_name is the file the data came from. Whew.
+read.csv("data_extra/confidence1.5/final_peaks.csv")
 
 
 # Typically I'll only be working with a subset of the data, 
 # so I can select only the columns I'll need before left_joining the two together and plotting areas. 
 # I have a fourth table containing cruise metadata that uses file_name as a key if you're interested in that one too.
+
+
+# Anitra's info -----------------------------------------------------------
+read.csv("data_extra/confidence1.5/MAA data.xlsx")
+
