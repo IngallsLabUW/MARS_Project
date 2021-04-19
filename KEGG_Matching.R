@@ -1,69 +1,67 @@
 library(fuzzyjoin)
-library(janitor)
 library(tidyverse)
+options(scipen = 999)
 
 # Require ppm tolerance, if user doesn't enter it then use 15
 # Figure out z/hilic stuff. What about reverse phase/cyano?
-# fuzzyjoin to KEGG list
-# combine kegg names to kegg ids
+# Need to figure out how to download KEGGwithMasses
 
+# Define experimental and theoretical data
+Experimental.Data <- read.csv("data_processed/Example_ConfidenceLevel2.csv") 
 
-## Need to figure out how to download KEGGwithMasses
-KEGG.Data <- read.csv("data_extra/KEGGCompounds_withMasses.csv", header = TRUE)
+KEGG.Data <- read.csv("data_extra/KEGGCompounds_withMasses.csv", header = TRUE) %>%
+  rename(Compound_KEGG = OtherCmpds)
 
-Experimental.Data <- read.csv("data_processed/Example_ConfidenceLevel2.csv") %>%
+ToJoin <- Experimental.Data %>%
   rename(mz = mz_experimental) %>%
   select(MassFeature, compound_experimental, mz, column_experimental, z_experimental) %>%
   unique()
 
-
-#matchedKEGGs <- list() # Why is this here
-keggCompounds <- KEGG.Data %>%
-  rename(Compound = OtherCmpds)
-
-keggPos <- keggCompounds %>% 
-  select(Compound, PosMZ) %>% 
-  mutate(column = "HILIC",
+# Isolate pos and neg theoretical data
+keggPos <- KEGG.Data %>% 
+  select(Compound_KEGG, PosMZ) %>% 
+  mutate(column_KEGG = "HILIC",
          z = 1) %>%
-  # mutate(Fraction1 = "HILICPos", Fraction2="CyanoAq", Fraction3= "CyanoDCM") %>% unique() %>% Why is this here too
   rename(mz = PosMZ)
 
-keggNeg <- keggCompounds %>% 
-  select(Compound, NegMZ) %>% 
-  mutate(column = "HILIC",
+keggNeg <- KEGG.Data %>% 
+  select(Compound_KEGG, NegMZ) %>% 
+  mutate(column_KEGG = "HILIC",
          z = -1) %>%
-  # mutate(Fraction1 = "HILICPos", Fraction2="CyanoAq", Fraction3= "CyanoDCM") %>% unique() %>% Why is this here too
   rename(mz = NegMZ)
 
-keggCompoundsShort <- keggNeg %>%
+# Combine to full theoretical dataset
+keggCompounds <- keggNeg %>%
   rbind(keggPos)
 
-#MFstry <- Experimental.Data %>% mutate(MF_Frac2 = MF_Frac) %>% separate(MF_Frac2, c("MF", "Frac"), sep =  "_X_") %>% select(-MF) 
-matched <- difference_inner_join(x = keggCompoundsShort, y = Experimental.Data, # originally mfstry
+# Fuzzyjoin datasets
+My.Fuzzy.Join <- difference_inner_join(x = keggCompounds, y = ToJoin, 
                                  by = "mz", max_dist = .02, distance_col = NULL) %>%
   rename(mz_KEGG = mz.x,
-         mz_experimental = mz.y) %>%
-  filter(z == z_experimental) %>%
-  unique() %>% # can maybe drop 
-  mutate(ppm = (abs(mz_KEGG - mz_experimental) / mz_KEGG *10^6)) %>%
-  filter(ppm < 15) %>% #ppmtol, #Frac == Fraction1 | Frac == Fraction2 | Frac == Fraction3) %>%
-  mutate(mz_similarity_scoreKEGG = exp(-0.5 * (((mz_experimental - mz_KEGG) / 0.02) ^ 2))) %>%
-  #mutate(Frac = as.factor(Frac), mz = mz.x) %>% 
-  #select(MF_Frac, Compound, ppm ) %>% 
-  rename(Keggppm = ppm)
+         mz_experimental = mz.y,
+         z_KEGG = z) %>%
+  mutate(ppm = (abs(mz_KEGG - mz_experimental) / mz_KEGG *10^6), 
+         mz_similarity_scoreKEGG = exp(-0.5 * (((mz_experimental - mz_KEGG) / 0.02) ^ 2))) %>%
+  filter(ppm < 15, 
+         z_KEGG == z_experimental) %>%
+  unique() %>% 
+  rename(KEGGppm = ppm) %>%
+  arrange(compound_experimental)
 
-
-matchedNames <- left_join(matched, keggCompounds) %>% 
+# Match KEGG names to IDs
+matchedNames <- left_join(My.Fuzzy.Join, KEGG.Data) %>% 
   select(Compound, Name) %>%
   group_by(Compound) %>%
   summarise(KEGGMatchesNames = as.character(paste(Name,  collapse=" ")))
 
-# matchedKEGGs[[1]] <- left_join(matched, matchedNames) %>% 
-#   rename(KeggMatches = Compound)
-final <- matched %>%
+# Combine to full matched df
+final <- My.Fuzzy.Join %>%
   left_join(matchedNames) %>%
-  arrange(Keggppm) %>%
-  group_by(MassFeature) 
+  select(MassFeature, compound_experimental, mz_KEGG, z_KEGG, Compound, KEGGMatchesNames, KEGGppm, mz_similarity_scoreKEGG)
+
+
+t <- final %>%
+  difference_left_join(Experimental.Data, by = c("compound_experimental"))
 
 
 
