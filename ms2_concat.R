@@ -7,6 +7,8 @@ Cyano.MS2 <- read.csv("data_extra/Standards_MS2/Cyano_stds_withMS2s.csv") %>%
 
 NonScaled.MS2 <- read.csv("~/work/Ingalls_Standards/MSMS/data_processed/Ingalls_Lab_Standards_MSMS.csv")
 
+Fivetimes <- read.csv("data_extra/Ingalls_Lab_Standards_MSMS5x.csv")
+
 # Functions ---------------------------------------------------------------
 ConcatToScan <- function(concat.format) {
   scantable <- cSplit(concat.format, "MS2", sep = ";") %>%
@@ -15,6 +17,33 @@ ConcatToScan <- function(concat.format) {
     #select(compound, mz, intensity, file_name)
   
   return(scantable)
+}
+
+PlotScaled <- function(compound.name, df) {
+  # df must be in concatenated, scaled form
+  scaled <- df %>%
+    filter(grepl("Mix1", filename)) %>%
+    filter(compound_name == compound.name & voltage == 20) %>%
+    select("compound" = compound_name, "file_name" = filename, voltage, "MS2" = contains("MS2")) %>%
+    group_modify(~ConcatToScan(.x)) %>%
+    mutate(B = substr(file_name, nchar(file_name)-9+1, nchar(file_name))) %>%
+    mutate(run = substr(B,1,nchar(B)-5)) %>%
+    select(-name, -B, -file_name) %>%
+    unique() %>%
+    drop_na() %>%
+    mutate(intensity = as.numeric(intensity)) %>%
+    mutate(mz = as.numeric(mz)) %>%
+    filter(mz > 84 & mz < 86)
+  
+  plot <- ggplot(scaled) +
+    geom_segment(aes(x = mz, y = intensity, group = run, xend = mz, yend = 0)) +
+    facet_wrap(~run) +
+    #geom_line(aes(color = run), size=1.2) +
+    #geom_point(aes(color = run)) +
+    theme(axis.text.x = element_text(angle = 90)) +
+    ggtitle(paste(compound.name, "20 volts, PosMix1, Scaled"))
+  
+  print(plot)
 }
 
 ScanToConcat <- function(scantable.format) {
@@ -47,7 +76,6 @@ ScaleMS2 <- function(scan) {
   return(scantable)
 }
 
-
 # Both Layouts ------------------------------------------------------------
 Concatenated.Format <- Cyano.MS2 %>%
   rename(MS2 = MS2s) %>%
@@ -72,62 +100,110 @@ Concatenated.to.Scantable <- Concatenated.Format %>%
 
 # Scale raw MS2 data --------------------------------------------------
 ScaledforMS2 <- NonScaled.MS2 %>%
+  drop_na() %>%
   rowwise() %>%
   mutate(MS2_scaled = ScaleMS2(MS2))
 
-################################################################################################################
-
-PlotScaled <- function(compound.name) {
-  scaled <- ScaledforMS2 %>%
-    filter(grepl("Mix1", filename)) %>%
-    filter(compound_name == compound.name & voltage == 20) %>%
-    select("compound" = compound_name, "file_name" = filename, voltage, "MS2" = MS2_scaled) %>%
-    group_modify(~ConcatToScan(.x)) %>%
-    mutate(B = substr(file_name, nchar(file_name)-9+1, nchar(file_name))) %>%
-    mutate(run = substr(B,1,nchar(B)-5)) %>%
-    select(-name, -B, -file_name) %>%
-    unique() %>%
-    drop_na() %>%
-    mutate(intensity = as.numeric(intensity)) %>%
-    mutate(mz = as.numeric(mz))
-  
-  plot <- ggplot(scaled, aes(x = mz, y = intensity, group = run)) +
-    #geom_line(aes(color = run), size=1.2) +
-    geom_point(aes(color = run)) +
-    theme(axis.text.x = element_text(angle = 90)) +
-    ggtitle(paste(compound.name, "20 volts, PosMix1, Scaled"))
-  
-  print(plot)
-}
-
-plot1 <- PlotScaled("4-Aminobutyric acid")
-plot2 <- PlotScaled("5-Hydroxyectoine")
-plot3 <- PlotScaled("Adenine")
-plot4 <- PlotScaled("Isocitric acid")
-
-require(gridExtra)
-grid.arrange(plot1, plot2, plot3, plot4, ncol=2)
+# MS2 five time run variation --------------------------------------------------
+Fivetimes.Scaled <- Fivetimes %>%
+  rowwise() %>%
+  mutate(MS2 = ScaleMS2(MS2)) 
 
 
+t <- Fivetimes.Scaled %>%
+  filter(compound_name == "Isocitric acid") %>%
+  mutate(B = substr(filename, nchar(filename)-9+1, nchar(filename))) %>%
+  mutate(run = substr(B,1,nchar(B)-5)) %>%
+  select(-B, -filename) %>%
+  cSplit(2, sep = ";") %>%
+  separate(col = 4, into = c("mz", "intensity"), sep = ", ") %>%
+  select(1:5) %>%
+  filter(voltage == 20)
 
 
-
-## garbage
-
-adenine.raw <- NonScaled.MS2 %>%
-  filter(compound_name == "Adenine" & voltage == 20) %>%
-  select("compound" = compound_name, "file_name" = filename, voltage, MS2) %>%
+# Plot attempts -----------------------------------------------------------
+# Base R
+compound.name <- "Isocitric acid"
+voltage <- 50
+My.Compound <- Fivetimes.Scaled %>%
+  filter(grepl("Mix1", filename)) %>%
+  filter(compound_name == compound.name & voltage == voltage) %>%
+  select("compound" = compound_name, "file_name" = filename, voltage, "MS2" = contains("MS2")) %>%
   group_modify(~ConcatToScan(.x)) %>%
-  filter(grepl("Mix1", file_name)) %>%
   mutate(B = substr(file_name, nchar(file_name)-9+1, nchar(file_name))) %>%
   mutate(run = substr(B,1,nchar(B)-5)) %>%
   select(-name, -B, -file_name) %>%
   unique() %>%
-  drop_na()
+  drop_na() %>%
+  mutate(intensity = as.numeric(intensity)) %>%
+  mutate(mz = as.numeric(mz))
 
-t.raw <- ggplot(adenine.raw, aes(x = mz, y = intensity, group = run)) +
-  geom_line(aes(color = run), size=1.2) +
-  geom_point() +
-  ggtitle("Adenine, 20 volts, Mix1, Raw Data")
-t.raw
+# Single MS2 plot
+plot(intensity~mz, type="h", data=My.Compound, ylab="Intensity", xlab="Fragment m/z", col = "blue", lwd = 4)
+title(paste("Scaled,", compound.name, voltage, "volts, Mix 1"))
+legend("topleft", legend = unique(My.Compound$compound))
+
+# All five runs
+nrun <- length(unique(My.Compound$run))
+xrange <- range(My.Compound$mz)
+yrange <- range(My.Compound$intensity)
+
+plot(xrange, yrange, type = "n", xlab = "m/z", ylab = "intensity")
+colors <- rainbow(nrun)
+linetype <- c(1:nrun)
+plotchar <- seq(18,18+nrun,1)
+
+for (i in 1:nrun) {
+  run <- subset(My.Compound, run==i)
+  lines(My.Compound$mz, My.Compound$intensity, type="h", lwd=1.5,
+        lty=linetype[i], col=colors[i], pch=plotchar[i])
+}
+
+title(paste("MS2 Variation"))
+legend(xrange[1], yrange[2], 1:nrun, cex=0.8, col=colors,
+       pch=plotchar, lty=linetype, title="Run")
+
+
+################################################################################################################
+
+plot1 <- PlotScaled("Isocitric acid", Fivetimes.Scaled)
+plot2 <- PlotScaled("Succinylglycine", Fivetimes.Scaled)
+plot3 <- PlotScaled("Adenine", Fivetimes.Scaled)
+plot4 <- PlotScaled("Isocitric acid", Fivetimes.Scaled)
+
+require(gridExtra)
+grid.arrange(plot1, plot2, plot3, plot4, ncol=2)
+
+library(tidyverse)
+library(data.table)
+pmppm <- function (mass, ppm = 4) {
+  return(c(mass * (1 - ppm/1e+06), mass * (1 + ppm/1e+06)))
+}
+frag1_msms_data <- data.frame(
+  mz=100+runif(5, -0.00001, 0.00001),
+  int=100+runif(5, -2, 0)
+)
+frag2_msms_data <- data.frame(
+  mz=50+runif(5, -0.00001, 0.00001),
+  int=50+runif(5, -2, 0)
+)
+frag3_msms_data <- data.frame(
+  mz=75,
+  int=1
+)
+msms_data <- rbind(frag1_msms_data, frag2_msms_data, frag3_msms_data) %>%
+  arrange(desc(int))
+consensus <- list()
+
+while(nrow(msms_data)>0){
+  first_frag_mz <- msms_data$mz[1]
+  frag_data <- msms_data %>%
+    filter(mz%between%pmppm(first_frag_mz, 5))
+  if(nrow(frag_data)<3){
+    msms_data <- anti_join(msms_data, frag_data)
+    return(NULL)
+  }
+  consensus[[length(consensus)+1]] <- c(mean(frag_data$mz), mean(frag_data$int))
+  msms_data <- anti_join(msms_data, frag_data)
+}
 

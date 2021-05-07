@@ -6,26 +6,27 @@ options(scipen = 999)
 # Figure out z/hilic stuff. What about reverse phase/cyano?
 # Need to figure out how to download KEGGwithMasses
 
+
 # Define experimental and theoretical data
-Experimental.Data <- read.csv("data_processed/Example_ConfidenceLevel2.csv") 
+Experimental.Data.CL2 <- read.csv("data_extra/Example_ConfidenceLevel2.csv")
 
 KEGG.Data <- read.csv("data_extra/KEGGCompounds_withMasses.csv", header = TRUE) %>%
   rename(Compound_KEGG = OtherCmpds)
 
-ToJoin <- Experimental.Data %>%
+ToJoin <- Experimental.Data.CL2 %>%
   rename(mz = mz_experimental) %>%
-  select(MassFeature, compound_experimental, mz, column_experimental, z_experimental) %>%
+  select(MassFeature, primary_key, mz, column_experimental, z_experimental) %>%
   unique()
 
 # Isolate pos and neg theoretical data
-keggPos <- KEGG.Data %>% 
-  select(Compound_KEGG, PosMZ) %>% 
+keggPos <- KEGG.Data %>%
+  select(Compound_KEGG, PosMZ) %>%
   mutate(column_KEGG = "HILIC",
          z = 1) %>%
   rename(mz = PosMZ)
 
-keggNeg <- KEGG.Data %>% 
-  select(Compound_KEGG, NegMZ) %>% 
+keggNeg <- KEGG.Data %>%
+  select(Compound_KEGG, NegMZ) %>%
   mutate(column_KEGG = "HILIC",
          z = -1) %>%
   rename(mz = NegMZ)
@@ -35,29 +36,29 @@ keggCompounds <- keggNeg %>%
   rbind(keggPos)
 
 # Fuzzyjoin datasets
-My.Fuzzy.Join <- difference_inner_join(x = keggCompounds, y = ToJoin, 
-                                 by = "mz", max_dist = .02, distance_col = NULL) %>%
+My.Fuzzy.Join <- difference_inner_join(x = keggCompounds, y = ToJoin,
+                                       by = "mz", max_dist = .02, distance_col = NULL) %>%
   rename(mz_KEGG = mz.x,
          mz_experimental = mz.y,
          z_KEGG = z) %>%
-  mutate(ppm = (abs(mz_KEGG - mz_experimental) / mz_KEGG *10^6), 
+  mutate(ppm = (abs(mz_KEGG - mz_experimental) / mz_KEGG *10^6),
          mz_similarity_scoreKEGG = exp(-0.5 * (((mz_experimental - mz_KEGG) / 0.02) ^ 2))) %>%
-  filter(ppm < 15, 
+  filter(ppm < 15,
          z_KEGG == z_experimental) %>%
-  unique() %>% 
+  unique() %>%
   rename(KEGGppm = ppm) %>%
-  arrange(compound_experimental)
+  arrange(primary_kkey)
 
 # Match KEGG names to IDs
-matchedNames <- left_join(My.Fuzzy.Join, KEGG.Data) %>% 
-  select(Compound, Name) %>%
-  group_by(Compound) %>%
+matchedNames <- left_join(My.Fuzzy.Join, KEGG.Data) %>%
+  select(Compound_KEGG, Name) %>%
+  group_by(Compound_KEGG) %>%
   summarise(KEGGMatchesNames = as.character(paste(Name,  collapse=" ")))
 
 # Combine to full matched df
 final <- My.Fuzzy.Join %>%
   left_join(matchedNames) %>%
-  select(MassFeature, compound_experimental, mz_KEGG, z_KEGG, Compound, KEGGMatchesNames, KEGGppm, mz_similarity_scoreKEGG)
+  select(MassFeature, compound_experimental, Compound_KEGG, mz_KEGG, z_KEGG, KEGGMatchesNames, KEGGppm, mz_similarity_scoreKEGG)
 
 
 t <- final %>%
@@ -67,7 +68,7 @@ t <- final %>%
 
 
 ## Will's code
-#########################################################3
+#########################################################
 library(tidyverse)
 library(httr)
 library(xml2)
@@ -92,4 +93,16 @@ pathway_cmpds <- pbsapply(mol_ids, function(mol_id){
   data.frame(mol_id, cmpd_name, cmpd_mz)
 }) %>%
   do.call(what = "rbind")
+
+path <- "http://rest.kegg.jp/list/compound"
+
+r <- GET(url = path) %>%
+  content()
+
+t <- read.csv(text = gsub("\t\n", "", r), sep = "\t", header = FALSE, col.names = c("cmpd", "name","hmm"))
+
+masspath <- "http://rest.kegg.jp/find/compound/exact_mass"	
+emass <- GET(url = masspath) %>%
+  content()
+tmass <- read.csv(text = gsub("\t\n", "", emass), sep = "\t", header = FALSE, col.names = c("cmpd", "exact_mass"))
 ##############################################################
