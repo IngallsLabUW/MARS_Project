@@ -1,20 +1,23 @@
 library(splitstackshape)
 library(tidyverse)
+options(scipen = 999)
 
 Cyano.MS2 <- read.csv("data_extra/Standards_MS2/Cyano_stds_withMS2s.csv") %>%
   mutate(column = "RP",
          z = NA)
 
-NonScaled.MS2 <- read.csv("~/work/Ingalls_Standards/MSMS/data_processed/Ingalls_Lab_Standards_MSMS.csv")
+#NonScaled.MS2 <- read.csv("~/work/Ingalls_Standards/MSMS/data_processed/Ingalls_Lab_Standards_MSMS.csv")
+NonScaled.MS2 <- read.csv("~/Downloads/Ingalls_Lab_Standards_MSMS.csv") #5x
 
-Fivetimes <- read.csv("data_extra/Ingalls_Lab_Standards_MSMS5x.csv")
+#Fivetimes <- read.csv("data_extra/Ingalls_Lab_Standards_MSMS5x.csv")
+Fivetimes <- read.csv("~/Downloads/Ingalls_Lab_Standards_MSMS.csv")
 
 # Functions ---------------------------------------------------------------
 ConcatToScan <- function(concat.format) {
   scantable <- cSplit(concat.format, "MS2", sep = ";") %>%
     pivot_longer(cols = starts_with("MS2")) %>%
     separate(value, sep = ",", into = c("mz", "intensity")) #%>%
-    #select(compound, mz, intensity, file_name)
+  #select(compound, mz, intensity, file_name)
   
   return(scantable)
 }
@@ -104,30 +107,65 @@ ScaledforMS2 <- NonScaled.MS2 %>%
   rowwise() %>%
   mutate(MS2_scaled = ScaleMS2(MS2))
 
+################################################################################
+
 # MS2 five time run variation --------------------------------------------------
-Fivetimes.Scaled <- Fivetimes %>%
+Fivetimes.Scantable <- Fivetimes %>%
   rowwise() %>%
-  mutate(MS2 = ScaleMS2(MS2)) 
+  mutate(MS2 = ScaleMS2(MS2))
 
-
-t <- Fivetimes.Scaled %>%
-  filter(compound_name == "Isocitric acid") %>%
+t <- Fivetimes.Scantable %>%
   mutate(B = substr(filename, nchar(filename)-9+1, nchar(filename))) %>%
   mutate(run = substr(B,1,nchar(B)-5)) %>%
   select(-B, -filename) %>%
   cSplit(2, sep = ";") %>%
-  separate(col = 4, into = c("mz", "intensity"), sep = ", ") %>%
-  select(1:5) %>%
-  filter(voltage == 20)
+  cSplit(4:ncol(.), sep = ", ")
+names(t) <- gsub(x = names(t), pattern = "_1", replacement = "_mz")  
+names(t) <- gsub(x = names(t), pattern = "_2", replacement = "_int")  
 
+t2 <- t %>%
+  arrange(voltage) %>%
+  group_by(voltage, compound_name) %>%
+  mutate_at(vars(contains("MS2")), funs(var(.))) %>%
+  select(-run) %>%
+  unique()
+
+t3 <- t2 %>%
+  ungroup() %>%
+  select(voltage, compound_name, contains("mz")) %>%
+  pivot_longer(
+    cols = starts_with("MS2"),
+    names_to = "mz",
+    names_prefix = "wk",
+    values_to = "mz_variation",
+    values_drop_na = TRUE
+  ) %>%
+  mutate(voltage = factor(voltage)) %>%
+  mutate(sqrt_mz_variation = sqrt(mz_variation)) %>%
+  filter(!grepl("int", mz))
+
+p <- ggplot(t3, aes(x = compound_name, y = voltage, fill = mz_variation)) +
+  geom_tile() +
+  theme(axis.text.x = element_text(angle = 90))
+p
+
+p.sqrt <- ggplot(t3, aes(x = compound_name, y = voltage, fill = sqrt_mz_variation)) +
+  geom_tile() +
+  theme(axis.text.x = element_text(angle = 90))
+p.sqrt
+
+ggplot(data = t3,
+       mapping = aes(x = reorder(compound_name, mz_variation), mz_variation)) +
+  geom_line() +
+  theme(axis.text.x = element_text(angle = 90))
 
 # Plot attempts -----------------------------------------------------------
 # Base R
-compound.name <- "Isocitric acid"
+compound.name <- "Adenine"
 voltage <- 50
 My.Compound <- Fivetimes.Scaled %>%
   filter(grepl("Mix1", filename)) %>%
-  filter(compound_name == compound.name & voltage == voltage) %>%
+  filter(compound_name == compound.name) %>%
   select("compound" = compound_name, "file_name" = filename, voltage, "MS2" = contains("MS2")) %>%
   group_modify(~ConcatToScan(.x)) %>%
   mutate(B = substr(file_name, nchar(file_name)-9+1, nchar(file_name))) %>%
@@ -136,35 +174,13 @@ My.Compound <- Fivetimes.Scaled %>%
   unique() %>%
   drop_na() %>%
   mutate(intensity = as.numeric(intensity)) %>%
-  mutate(mz = as.numeric(mz))
+  mutate(mz = as.numeric(mz)) %>%
+  filter(voltage == 50)
 
 # Single MS2 plot
 plot(intensity~mz, type="h", data=My.Compound, ylab="Intensity", xlab="Fragment m/z", col = "blue", lwd = 4)
 title(paste("Scaled,", compound.name, voltage, "volts, Mix 1"))
 legend("topleft", legend = unique(My.Compound$compound))
-
-# All five runs
-nrun <- length(unique(My.Compound$run))
-xrange <- range(My.Compound$mz)
-yrange <- range(My.Compound$intensity)
-
-plot(xrange, yrange, type = "n", xlab = "m/z", ylab = "intensity")
-colors <- rainbow(nrun)
-linetype <- c(1:nrun)
-plotchar <- seq(18,18+nrun,1)
-
-for (i in 1:nrun) {
-  run <- subset(My.Compound, run==i)
-  lines(My.Compound$mz, My.Compound$intensity, type="h", lwd=1.5,
-        lty=linetype[i], col=colors[i], pch=plotchar[i])
-}
-
-title(paste("MS2 Variation"))
-legend(xrange[1], yrange[2], 1:nrun, cex=0.8, col=colors,
-       pch=plotchar, lty=linetype, title="Run")
-
-
-################################################################################################################
 
 plot1 <- PlotScaled("Isocitric acid", Fivetimes.Scaled)
 plot2 <- PlotScaled("Succinylglycine", Fivetimes.Scaled)
@@ -174,6 +190,9 @@ plot4 <- PlotScaled("Isocitric acid", Fivetimes.Scaled)
 require(gridExtra)
 grid.arrange(plot1, plot2, plot3, plot4, ncol=2)
 
+################################################################################################################
+
+######## Example code
 library(tidyverse)
 library(data.table)
 pmppm <- function (mass, ppm = 4) {
@@ -191,19 +210,26 @@ frag3_msms_data <- data.frame(
   mz=75,
   int=1
 )
+
 msms_data <- rbind(frag1_msms_data, frag2_msms_data, frag3_msms_data) %>%
   arrange(desc(int))
-consensus <- list()
 
-while(nrow(msms_data)>0){
-  first_frag_mz <- msms_data$mz[1]
-  frag_data <- msms_data %>%
-    filter(mz%between%pmppm(first_frag_mz, 5))
-  if(nrow(frag_data)<3){
-    msms_data <- anti_join(msms_data, frag_data)
-    return(NULL)
+TakeConsensus <- function(msms_df) {
+  
+  consensus <- list()
+  while(nrow(msms_df)>0){
+    first_frag_mz <- msms_df$mz[1]
+    frag_data <- msms_df %>%
+      filter(mz%between%pmppm(first_frag_mz, 5))
+    if(nrow(frag_data)>=3){
+      consensus[[length(consensus)+1]] <- c(mean(frag_data$mz), mean(frag_data$int))
+    }
+    msms_df <- anti_join(msms_df, frag_data)
   }
-  consensus[[length(consensus)+1]] <- c(mean(frag_data$mz), mean(frag_data$int))
-  msms_data <- anti_join(msms_data, frag_data)
+  return(consensus)
 }
+
+test_msms <- t %>%
+  filter(compound_name == "(3-Carboxypropyl)trimethylammonium") %>%
+  group_by(voltage)
 
