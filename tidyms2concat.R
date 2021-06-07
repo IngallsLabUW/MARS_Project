@@ -33,6 +33,21 @@ ScaleMS2 <- function(scan) {
   return(scantable)
 }
 
+ScanToConcat <- function(scantable.format) {
+  concatenated <- scantable.format %>%
+    unique() %>%
+    group_by(compound_name, filename) %>%
+    unite("MS2", mz:intensity, sep = ",") %>%
+    ungroup() %>%
+    group_by(compound_name, voltage) %>%
+    mutate(MS2 = paste(MS2, collapse = "; ")) %>%
+    select(-fragment) %>%
+    unique() %>%
+    as.data.frame()
+  
+  return(concatenated)
+}
+
 TakeConsensus <- function(msms_df) { ## Different length issues- check
   
   msms_df <- msms_df %>%
@@ -70,8 +85,12 @@ Fivetimes <- read.csv("~/Downloads/Ingalls_Lab_Standards_MSMS.csv") %>%
   mutate(MS2 = ScaleMS2(MS2))
 
 Fivetimes.Scantable <- Fivetimes %>%
-  group_modify(~ConcatToScan(.x)) %>%
+  ConcatToScan() %>%
   drop_na()
+
+Fivetimes.Concat <- Fivetimes.Scantable %>%
+  ScanToConcat()
+  
 
 Fivetimes.Wide <- Fivetimes %>%
   mutate(B = substr(filename, nchar(filename)-9+1, nchar(filename))) %>%
