@@ -4,6 +4,8 @@ library(plyr)
 library(tidyverse)
 library(devtools)
 
+#No scraping necessary - the .json files are found here: https://mona.fiehnlab.ucdavis.edu/downloads
+
 #MoNAraw <- fromJSON("MoNADat/MoNA-export-LC-MS-MS_Negative_Mode.json")
 MoNAraw <- fromJSON("data_extra/MoNA-export-LC-MS-MS_Positive_Mode.json")
 #MoNAraw <- fromJSON("MoNADat/MoNA-export-HMDB.json") #getsPosandNeg
