@@ -161,23 +161,21 @@ getMetlinMS2 <- function(cmpd_id) { # punched in as the key
 
 
 # Data --------------------------------------------------------------------
-Experimental.Values <- read.csv("data_processed/confidence_level1.csv") %>%
-  select(-X) %>%
-  mutate(mz_unknown = ifelse(is.na(mz_unknown) & !is.na(mz), mz, mz_unknown)) %>%
-  select(compound_unknown, KRH_identification, compound_known, mz_unknown, confidence_rank, confidence_source) %>%
-  slice(1:200)
+Experimental.Values <- read.csv("~/work/phobos/example_data/Example_ConfidenceLevel1.csv") %>%
+  mutate(mz_experimental = ifelse(is.na(mz_experimental) & !is.na(mz_theoretical), mz_theoretical, mz_experimental)) %>%
+  select(MassFeature, compound_theoretical, mz_experimental)
 
 # Scrape Metlin -----------------------------------------------------------
 # Mini experimental test runs: TAKES A LONG TIME AND CURRENTLY CAN'T PARALLELLIZE IT FOR SOME REASON
 
 # Scrape for mz
 system.time(
-  experimental_databymz <- lapply(unique(Experimental.Values[, 4]), getMetlinMz_rmledit)
+  experimental_databymz <- lapply(unique(Experimental.Values[, 3]), getMetlinMz_rmledit)
 )
 experimental_databymz_df <- bind_rows(experimental_databymz) %>% 
-  rename(mz_unknown = Ingalls_cmpd_mz) %>%
-  left_join(Experimental.Values, by = "mz_unknown") %>%
-  select(compound_unknown, everything()) %>%
+  rename(mz_experimental = Ingalls_cmpd_mz) %>%
+  left_join(Experimental.Values, by = "mz_experimental") %>%
+  select(MassFeature, everything()) %>%
   unique()
 
 ethyltests <- experimental_databymz_df %>%
