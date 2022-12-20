@@ -1,0 +1,73 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(plyr)
+library(tidyverse)
+library(zoo)
+
+## Regina edits ##
+
+
+# Get your MSP into R - should be a .txt
+MSPFile <- read_delim("CA_isotope.txt", delim = ";", 
+                    col_names = FALSE, trim_ws = FALSE)
+colnames(MSPFile) <- "Original"
+
+#Separate the headers from the nonheaders
+Mod1 <- MSPFile %>% 
+  as.data.frame() %>%
+  mutate(Modified = Original %>% str_replace("Num Peaks", "NumPeaks")) %>%
+  separate(Modified, into = c("V1", "V2"), sep = " ", extra = "merge") 
+
+#Propogate the name for each metabolite (so we can split it later) and add row numbers so we can put things back in order
+Names <- Mod1 %>%
+  filter(V1 == "NAME:") %>%
+  mutate(Metabolite = V2) %>%
+  select(V1, V2, Metabolite) 
+Mod1$OrigOrder <- seq.int(nrow(Mod1))
+Mod1 <- left_join(Mod1, Names)
+Mod1$Metabolite <- na.locf(Mod1$Metabolite) 
+
+#Now try to get the spectra in their own fields # "^\\d" means stars with any digit
+#This will be good for cleaning up spectra straight from the QE, though right now it doesn't do anything
+Mod1 <- Mod1 %>%
+  mutate(spectra = ifelse(str_detect(V1, "^\\d"), V1, NA)) %>%
+  separate(spectra, into = c("mass", "intensity"), sep = "\t")
+
+SummarizedSpectra <- Mod1 %>%
+  #filter(Metabolite == "\"Ingalls_L-Isoleucine") %>%
+  select(Metabolite, OrigOrder, mass, intensity) %>%
+  mutate(rnd_mass = round_any(as.numeric(mass), accuracy = 0.02)) %>%
+  filter(as.numeric(intensity) > 1000) %>%
+  group_by(Metabolite, rnd_mass) %>%
+  summarise(mass = round(mean(as.numeric(mass)), digits = 4),
+            intensity = round(sum(as.numeric(intensity), digits = -3)),
+            OrigOrder = mean(OrigOrder)) %>%
+  mutate(Num_peaks = n()) %>%
+  arrange(desc(OrigOrder))
+
+Mod2 <- Mod1 %>%
+  filter(!str_detect(V1, "^\\d")) %>%
+  filter(!str_detect(V1, "Comment:")) %>%
+  select(-mass, -intensity) %>%
+  bind_rows(SummarizedSpectra %>%
+              select(Metabolite, OrigOrder, mass, intensity, Num_peaks)) %>%
+  arrange((OrigOrder)) %>%
+  mutate(Num_peaks = na.locf(Num_peaks, fromLast = TRUE ) ) %>%
+  mutate(Original = ifelse(is.na(Original), paste(mass, "\t", intensity, sep = ""), Original)) %>%
+  mutate(Original = ifelse(str_detect(Original, "Num Peaks"), paste("Num Peaks: ", Num_peaks, sep = ""), Original))
+
+#This inserts line breaks betweeen each Metabolite, which we need when it is exported to a txt file
+Mod2 <- head(do.call(rbind, by(Mod2, Mod2$Metabolite, rbind, "")), -1 )
+
+#Now exporting....will this work?
+Final <- Mod2 %>% select(Original)
+write.table(Final, "CA_isotope_short.msp", sep="\t", col.names = F, row.names = F, quote=FALSE)
+
+
+
+```
+
