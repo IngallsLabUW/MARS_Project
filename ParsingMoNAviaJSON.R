@@ -7,26 +7,9 @@ library(tidyjson)
 
 #No scraping necessary - the .json files are found here: https://mona.fiehnlab.ucdavis.edu/downloads
 
-#MoNAraw <- fromJSON("data_extra/MoNA-export-LC-MS-MS_Negative_Mode.json")
+MoNAraw <- fromJSON("data_extra/MoNA-export-LC-MS-MS_Negative_Mode.json")
 # MoNAraw <- fromJSON("data_extra/MoNA-export-LC-MS-MS_Positive_Mode.json")
 # MoNAraw <- fromJSON("MoNADat/MoNA-export-HMDB.json") #getsPosandNeg
-
-MoNAraw <- jsonlite::fromJSON("data_extra/MoNA-export-LC-MS_Spectra.json", simplifyVector = FALSE) %>%
-  spread_all()
-
-FullMoNA <- MoNAraw %>%
-  select(id, spectrum, score = score.score, library = library.tag.text, ..JSON)
-
-testMoNA <- FullMoNA %>%
-  select(id, ..JSON) %>%
-  filter(id == "AC000001") %>%
-  unnest(cols = c(..JSON))
-MetaDat <- sapply(testMoNA, function(x) x["metaData"])
-MetaDat[["category"]] <- sapply(MetaDat[[1]], function(x) x["category"])
-MetaDatTemp[["computed"]] <- sapply(MetaDat[[i]], function(x) x[["computed"]])
-MetaDatTemp[["hidden"]] <- sapply(MetaDat[[i]], function(x) x[["hidden"]])
-MetaDatTemp[["name"]] <- sapply(MetaDat[[i]], function(x) x[["name"]])
-MetaDatTemp[["value"]] <- sapply(MetaDat[[i]], function(x) x[["value"]])
 
 
 # Once run recall here -------
@@ -49,6 +32,7 @@ SpectraDatabase <- sapply(MoNAraw, function(x) x[["library"]][["tag"]][["text"]]
 
 #Get all the MetaData for each spectra------
 MetaDat <- sapply(MoNAraw, function(x) x[["metaData"]])
+
 MetaDatDFs <- list()
 for (i in 1:length(MetaDat)) {
   MetaDatTemp <- list()
@@ -76,7 +60,7 @@ for (i in 1:length(MetaDat)) {
   MetaDatTemp[["value"]] <- sapply(MetaDat[[i]], function(x) x[["value"]])
   MetaDatTempDF <- do.call(cbind, MetaDatTemp) %>% as.data.frame()
   colnames(MetaDatTempDF) <- names(MetaDatTemp)
-  MetaDatTempDF$SpectraID <- SpectrumID[i] ## error here
+  # MetaDatTempDF$SpectraID <- SpectrumID[i] ## error here
   MetaDatDFs[[i]] <-  MetaDatTempDF
 }
 MetaDatCMPDDFALL <- ldply(MetaDatDFs, rbind) %>% as.data.frame()
