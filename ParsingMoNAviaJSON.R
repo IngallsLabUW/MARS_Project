@@ -3,14 +3,15 @@ library(RJSONIO)
 # library(plyr)
 library(tidyverse)
 # library(devtools)
-library(tidyjson)
+#library(tidyjson)
 
 #No scraping necessary - the .json files are found here: https://mona.fiehnlab.ucdavis.edu/downloads
 
-MoNAraw <- fromJSON("data_extra/MoNA-export-LC-MS-MS_Negative_Mode.json")
+# MoNAraw <- fromJSON("data_extra/MoNA-export-LC-MS-MS_Negative_Mode.json")
 # MoNAraw <- fromJSON("data_extra/MoNA-export-LC-MS-MS_Positive_Mode.json")
 # MoNAraw <- fromJSON("MoNADat/MoNA-export-HMDB.json") #getsPosandNeg
 
+MoNASlice <- MoNAraw[1:10]
 
 # Once run recall here -------
 #Spectra <- read_csv("POS_Spectra.csv")
@@ -19,19 +20,19 @@ MoNAraw <- fromJSON("data_extra/MoNA-export-LC-MS-MS_Negative_Mode.json")
 #MetaDatNamesDFALL <- read_csv("POS_Names.csv")
 
 #Extract MoNA IDs-----
-SpectrumID <- sapply(MoNAraw, function(x) x[["id"]])
+SpectrumID <- sapply(MoNASlice, function(x) x[["id"]])
 
 #Extract MoNA MS2s------
-Spectra <- sapply(MoNAraw, function(x) x[["spectrum"]])
+Spectra <- sapply(MoNASlice, function(x) x[["spectrum"]])
 
 #Extract MoNA score-------
-SpectraScore <- sapply(MoNAraw, function(x) x[["score"]][["score"]])
+SpectraScore <- sapply(MoNASlice, function(x) x[["score"]][["score"]])
 
 #Get the database its from-------
-SpectraDatabase <- sapply(MoNAraw, function(x) x[["library"]][["tag"]][["text"]])
+SpectraDatabase <- sapply(MoNASlice, function(x) x[["library"]][["tag"]][["text"]])
 
 #Get all the MetaData for each spectra------
-MetaDat <- sapply(MoNAraw, function(x) x[["metaData"]])
+MetaDat <- sapply(MoNASlice, function(x) x[["metaData"]])
 
 MetaDatDFs <- list()
 for (i in 1:length(MetaDat)) {
@@ -49,7 +50,7 @@ for (i in 1:length(MetaDat)) {
 MetaDatDFALL <- ldply(MetaDatDFs, rbind) %>% as.data.frame()
 
 #Get all the MetaData for each compound------
-MetaDat <- sapply(MoNAraw, function(x) x[["compound"]][[1]][["metaData"]])
+MetaDat <- sapply(MoNASlice, function(x) x[["compound"]][[1]][["metaData"]])
 MetaDatDFs <- list()
 for (i in 1:length(MetaDat)) {
   MetaDatTemp <- list()
@@ -60,26 +61,28 @@ for (i in 1:length(MetaDat)) {
   MetaDatTemp[["value"]] <- sapply(MetaDat[[i]], function(x) x[["value"]])
   MetaDatTempDF <- do.call(cbind, MetaDatTemp) %>% as.data.frame()
   colnames(MetaDatTempDF) <- names(MetaDatTemp)
-  # MetaDatTempDF$SpectraID <- SpectrumID[i] ## error here
+  MetaDatTempDF$SpectraID <- SpectrumID[i] 
   MetaDatDFs[[i]] <-  MetaDatTempDF
 }
 MetaDatCMPDDFALL <- ldply(MetaDatDFs, rbind) %>% as.data.frame()
-  
+
+##############################################################
+## ISSUES HERE TODO
 #Get all Names for each compound-----
-MetaDat <- sapply(MoNAraw, function(x) x[["compound"]][[1]][["names"]])
+MetaDatNames <- sapply(MoNASlice, function(x) x[["compound"]][[1]][["names"]])
 MetaDatDFs <- list()
-for (i in 1:length(MetaDat)) {
+for (i in 1:length(MetaDatNames)) {
   MetaDatTemp <- list()
-  MetaDatTemp[["computed"]] <- sapply(MetaDat[[i]], function(x) x[["computed"]])
-  MetaDatTemp[["name"]] <- sapply(MetaDat[[i]], function(x) x[["name"]])
-  MetaDatTemp[["score"]] <- sapply(MetaDat[[i]], function(x) x[["score"]])
+  MetaDatTemp[["computed"]] <- sapply(MetaDatNames[i], function(x) x[["computed"]]) ## Previously a double bracket around the i, like [[i]]
+  MetaDatTemp[["name"]] <- sapply(MetaDatNames[i], function(x) x[["name"]])
+  MetaDatTemp[["score"]] <- sapply(MetaDatNames[i], function(x) x[["score"]])
   MetaDatTempDF <- do.call(cbind, MetaDatTemp) %>% as.data.frame()
   colnames(MetaDatTempDF) <- names(MetaDatTemp)
   MetaDatTempDF$SpectraID <- SpectrumID[i]
   MetaDatDFs[[i]] <-  MetaDatTempDF
 }
 MetaDatNamesDFALL <- ldply(MetaDatDFs, rbind) %>% as.data.frame()
-
+##############################################################
 
 #Make a searchable database with pertinent information-----
 Spectra <- cbind(SpectrumID, Spectra, SpectraScore) %>% as.data.frame()
