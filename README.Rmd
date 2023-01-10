@@ -2,14 +2,16 @@
 title: "README"
 author: "RLionheart"
 date: "2/25/2021"
-output: html_document
+output: github_document
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-*THIS IS AN OLD README FROM THE PROJECT BUILD. PLEASE GO TO THE PHOBOS PACKAGE ON GITHUB FOR CURRENT INFORMATION.*
+*THIS IS AN OLD, OUTDATED REPOSITORY THAT IS ACTING AS AN ARCHIVE. PLEASE GO TO PHOBOS, BELOW, FOR UPDATED INFORMATION.*
+Most of this info can be found on the shared Google Drive under Collaborative Projects --> MARS and Phobos Project
 
 [Phobos](https://github.com/IngallsLabUW/phobos)
 
@@ -25,38 +27,3 @@ The MARS project is a way to easily identify unknown mass features (MFs) in your
 - A central database containing annotated MFs from previous MARS missions
 
 Flexible, updatable, searchable, rankable, exportable. 
-
----
-
-### Use Case Crash Course
-
-The scripts are used in the following order: 
-Annotate_Confidence_Level1.R
-Annotate_Confidence_Level2_MoNA.R
-*The Metlin confidence level annotation is currently under review*
-
-1. Start with a csv of experimental data. **Columns must be in the following format:**
-- "MassFeature": Your unique mass feature, character.
-- "mz": The mz value, numeric.
-- "rt": The retention time, in seconds, numeric.
-- "column": Column the mass feature was run on, character.
-- "z": The ion mode, numeric.
-- "MS2": MS2 data for those compounds that have it, character.
-  - **Important**: The MS2 data must be in the concatenated format of "mz, intensity;", as below.
-
-```{r MS2, include=FALSE}
-library(tidyverse)
-Experimental.Values <- read.csv("data_extra/Example_Experimental_Data.csv")
-```
-
-```{r}
-library(knitr)
-kable(Experimental.Values[1, 6])
-```
-
-For an example csv, see "data_extra/Example_Experimental_Data.csv"
-
-2. Run through Annotate_Confidence_Level1.R script. All required extra data (Ingalls standards and MS2) are included in this repository. When you have produced your confidence level 1 datasheet, write the csv and save it for the next step.
-
-3. Move to Annotate_Confidence_Level2_MoNA.R. As in the previous step, all the required extra data (scraped MoNA sheets) are available in the data_extra/MoNA_RelationalSpreadsheets directory. 
-- Be aware that some of the column selections/renaming are to avoid explosion joins. If you want to see more data included in your joins, adjust the selections as you need. This will cause your datasheet to balloon!
