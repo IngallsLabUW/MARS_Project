@@ -11,7 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 *THIS IS AN OLD, OUTDATED REPOSITORY THAT IS ACTING AS AN ARCHIVE. PLEASE GO TO PHOBOS, BELOW, FOR UPDATED INFORMATION.*
-Most of this info can be found on the shared Google Drive under Collaborative Projects --> MARS and Phobos Project
+Most of this info can be found on the shared Google Drive under Collaborative Projects --> MARS and Phobos Project.
+
+Within this repo, there are some example scripts from other lab members, archived code, original MARS projects functions, etc. 
 
 [Phobos](https://github.com/IngallsLabUW/phobos)
 
